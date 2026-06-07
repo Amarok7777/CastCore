@@ -5,13 +5,8 @@ node_modules/
 dist/
 out/
 
-# User data & secrets — never commit
-data/platformAuth.json
-data/oauthClients.json
-data/splits/
-data/alertdeck-media/
-data/time_left.txt
-data/nowplaying.txt
+# Runtime data — never commit
+data/
 
 # Legacy credentials
 legacy/credentials/
