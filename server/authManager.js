@@ -13,6 +13,10 @@ const { inferActorFromText, normalizeChannel } = require('./textUtils');
 const AUTH_PATH = path.join(__dirname, '..', 'data', 'platformAuth.json');
 const OAUTH_CLIENTS_PATH = path.join(__dirname, '..', 'data', 'oauthClients.json');
 
+// Default Client ID — registered CastCore Twitch app, works out of the box.
+// Users can override this in Settings with their own app.
+const CASTCORE_TWITCH_CLIENT_ID = 'tp5x0hwtl8eh34k1v4m3zihdnf6shy';
+
 let authConfig = {};
 let twitchWs   = null;
 let twitchConnected = false;
@@ -393,7 +397,7 @@ function getOAuthClientConfig(provider) {
   const fileCfg = authConfig.oauth?.[key] || {};
   const localCfg = loadOAuthClientConfigFile()?.[key] || {};
   return {
-    clientId: String(process.env[`${envPrefix}_CLIENT_ID`] || localCfg.clientId || fileCfg.clientId || '').trim(),
+    clientId: String(process.env[`${envPrefix}_CLIENT_ID`] || localCfg.clientId || fileCfg.clientId || (key === 'twitch' ? CASTCORE_TWITCH_CLIENT_ID : '')).trim(),
     clientSecret: String(process.env[`${envPrefix}_CLIENT_SECRET`] || localCfg.clientSecret || fileCfg.clientSecret || '').trim(),
   };
 }

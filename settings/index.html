@@ -156,36 +156,35 @@
       Twitch — App-Konfiguration
     </div>
     <div class="card">
-      <div style="display:grid;grid-template-columns:1fr 260px;gap:18px;align-items:start">
-        <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ok);background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:999px;padding:3px 10px">
+          <span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>
+          Bereit — CastCore App aktiv
+        </span>
+      </div>
+      <p style="font-size:12px;color:var(--text-m);line-height:1.6;margin:0 0 14px">
+        CastCore enthält eine eigene Twitch-App-Integration. Du kannst Twitch direkt verbinden — keine Einrichtung nötig.
+      </p>
+      <details style="-webkit-app-region:no-drag">
+        <summary style="font-size:11px;color:var(--text-s);cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:5px">
+          <svg id="adv-arrow" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .15s"><path d="M2 3.5l3 3 3-3"/></svg>
+          Eigene Twitch-App verwenden (Advanced)
+        </summary>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
           <div>
-            <label style="display:block;font-size:12px;color:var(--text-m);margin-bottom:6px">Twitch Client ID</label>
+            <label style="display:block;font-size:12px;color:var(--text-m);margin-bottom:6px">Client ID</label>
             <div style="display:flex;gap:8px">
-              <input id="twitch-client-id" type="text" class="input" placeholder="z.B. tp5x0hwtl8eh34k1v4m3zihdnf6shy"
+              <input id="twitch-client-id" type="text" class="input" placeholder="Leer lassen = CastCore-Default verwenden"
                 style="flex:1;font-family:var(--mono);font-size:12px">
-              <button class="btn primary" onclick="saveClientId()">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5l3.5 3.5L12 3"/></svg>
-                Speichern
-              </button>
+              <button class="btn primary" onclick="saveClientId()">Speichern</button>
             </div>
           </div>
           <p style="font-size:11px;color:var(--text-s);line-height:1.65;margin:0">
-            Die Client ID wird für den Twitch-Login benötigt. Ohne sie ist kein OAuth-Login möglich.<br>
-            Eigene App erstellen unter <strong style="color:var(--text)">dev.twitch.tv/console</strong> →
-            Neue App → Redirect URL: <code style="font-family:var(--mono);color:var(--acc2)">http://localhost</code>
+            Eigene App unter <strong style="color:var(--text)">dev.twitch.tv/console</strong> registrieren →
+            Redirect URL: <code style="font-family:var(--mono);color:var(--acc2)">http://localhost</code>
           </p>
         </div>
-        <div class="card" style="background:rgba(255,255,255,0.03)">
-          <span class="card-title" style="display:block;margin-bottom:8px">Wo bekomme ich die Client ID?</span>
-          <ol style="font-size:11px;color:var(--text-s);line-height:1.8;padding-left:16px;margin:0">
-            <li>dev.twitch.tv/console aufrufen</li>
-            <li>„Anwendung registrieren"</li>
-            <li>Name beliebig, Kategorie: „Chat Bot"</li>
-            <li>OAuth-Redirect: <code style="font-family:var(--mono);color:var(--acc2)">http://localhost</code></li>
-            <li>Client ID kopieren und hier einfügen</li>
-          </ol>
-        </div>
-      </div>
+      </details>
     </div>
   </div>
 
@@ -294,6 +293,11 @@ async function saveHotkeys() {
 }
 
 boot();
+
+document.querySelector('details')?.addEventListener('toggle', function() {
+  const arrow = document.getElementById('adv-arrow');
+  if (arrow) arrow.style.transform = this.open ? 'rotate(180deg)' : '';
+});
 </script>
 </body>
 </html>
