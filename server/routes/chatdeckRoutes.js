@@ -2,17 +2,26 @@ const { asyncHandler }          = require('./routeUtils');
 const { deprecatedOAuthOnly }   = require('./routeResponses');
 const alertQueue                = require('../alertQueue');
 const flowforgeEngine           = require('../flowforgeEngine');
+const chatdeckIntervalService   = require('../chatdeckIntervalService');
 
 function registerChatdeckRoutes(app, deps) {
   const { chatdeck, chatdeckService, authManager, twitchApiService, chatBus, platformEvents, broadcastSafely } = deps;
+
+  chatdeckIntervalService.init(authManager, twitchApiService);
+  chatdeckIntervalService.sync(chatdeck.getAll().intervalMessages || []);
 
   app.get('/api/chatdeck/config', (req, res) => res.json(chatdeck.getAll()));
 
   app.post('/api/chatdeck/config', asyncHandler(async (req, res) => {
     const updated = chatdeck.update(req.body || {});
     chatdeckService.reset();
+    chatdeckIntervalService.sync(updated.intervalMessages || []);
     res.json(updated);
   }));
+
+  app.get('/api/chatdeck/intervals/status', (_req, res) => {
+    res.json(chatdeckIntervalService.getStatus());
+  });
 
   app.get('/api/chatdeck/youtube/poll', async (req, res) => {
     const authState = authManager.getAuthState?.() || {};
@@ -96,6 +105,15 @@ function registerChatdeckRoutes(app, deps) {
     const ctx = await getTwitchModContext();
     if (!ctx) return res.status(403).json({ error: 'Twitch nicht verbunden oder fehlende Berechtigung' });
     const result = await twitchApiService.timeoutUser({ ...ctx, userId: String(userId), duration: Number(duration) || 600, reason: String(reason).slice(0, 500) });
+    res.json({ ok: result.ok, status: result.status });
+  }));
+
+  app.post('/api/chatdeck/twitch/send', asyncHandler(async (req, res) => {
+    const { message } = req.body || {};
+    if (!message) return res.status(400).json({ error: 'message required' });
+    const ctx = await getTwitchModContext();
+    if (!ctx) return res.status(403).json({ error: 'Twitch nicht verbunden oder fehlende Berechtigung' });
+    const result = await twitchApiService.sendChatMessage({ ...ctx, senderId: ctx.broadcasterId, message: String(message).slice(0, 500) });
     res.json({ ok: result.ok, status: result.status });
   }));
 

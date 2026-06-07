@@ -24,6 +24,14 @@ function registerFlowForgeRoutes(app) {
     res.json(upsertFlow({ ...existing, ...(req.body || {}), id: existing.id }));
   }));
 
+  app.post('/api/flowforge/flows/:id/run', asyncHandler(async (req, res) => {
+    const flow = getFlow(req.params.id);
+    if (!flow) return res.status(404).json({ error: 'Flow not found' });
+    const engine = require('../flowforgeEngine');
+    await engine.runFlowById(req.params.id);
+    res.json({ ok: true });
+  }));
+
   app.delete('/api/flowforge/flows/:id', (req, res) => {
     deleteFlow(req.params.id);
     res.json({ ok: true });

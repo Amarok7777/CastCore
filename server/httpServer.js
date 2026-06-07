@@ -79,6 +79,7 @@ function createOverlayServer({ dashboard = false, toolRuntime = null, electronPi
     'moderator:read:followers',
     'moderator:manage:chat_messages',
     'moderator:manage:banned_users',
+    'user:write:chat',
   ];
 
   const splitflowDir  = path.join(__dirname, '..', 'splitflow');

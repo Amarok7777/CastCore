@@ -7,172 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/shared/design.css">
+<link rel="stylesheet" href="/tool/hub/launcher.css">
 <script src="/shared/utils.js"></script>
 <script src="/shared/i18n.js"></script>
 <script src="/shared/winctrl.js" defer></script>
-<style>
-.lang-switcher { display:flex; gap:4px; align-items:center; }
-.lang-btn { opacity:.55; transition:opacity .15s; font-size:11px; padding:3px 7px; }
-.lang-btn:hover { opacity:.85; }
-.lang-btn-active { opacity:1; border-color:var(--acc-border); color:var(--acc2); }
-</style>
-<style>
-.app { width: min(1200px, 94vw); margin: 20px auto 28px; }
-
-/* ── Hub layout ── */
-.hub-shell {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  gap: 14px;
-  margin-top: 12px;
-  align-items: start;
-}
-.hub-left  { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 14px; align-self: start; }
-.hub-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-#tools-grid { margin-top: 0; gap: 14px; grid-auto-rows: minmax(185px, 1fr); }
-#tools-grid .tagline { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-#tools-grid .card { min-height: 0; }
-.obs-sidebar-fields { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.obs-sidebar-fields label { display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-m); }
-.obs-sidebar-fields input { width: 100%; }
-#hub-obs-card { min-height: auto; }
-#hub-cd-card  { min-height: 170px; }
-
-/* ── Tool cards ── */
-.card { display: flex; flex-direction: column; min-height: 170px; }
-.grid { margin-top: 14px; }
-
-.title   { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
-.tagline { margin: 8px 0 0; color: var(--text-m); font-size: 13px; line-height: 1.55; }
-.meta    { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 12px; }
-.category{ font-size: 11px; color: var(--text-s); }
-.footer-note { margin-top: 10px; color: var(--text-s); font-size: 12px; }
-
-/* ── Platforms section ── */
-.platform-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-  gap: 12px;
-  margin-top: 14px;
-}
-.platform-box {
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: rgba(255,255,255,0.03);
-  padding: 12px;
-}
-.platform-box h3 { margin: 0 0 10px; font-size: 16px; letter-spacing: -0.01em; }
-.platform-status { margin: 10px 0 0; font-size: 12px; color: var(--text-m); }
-
-.oauth-btn { font-size: 13px; }
-.oauth-btn.oauth-active {
-  background: rgba(68,219,155,0.12);
-  border-color: rgba(68,219,155,0.4);
-  color: #44db9b;
-}
-
-/* ── Timeline / Quickstart ── */
-.steps-vertical { margin-top: 12px; }
-.timeline-step {
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  align-items: start;
-  gap: 10px;
-  padding: 6px 0;
-  transition: transform 180ms ease;
-}
-.timeline-marker {
-  width: 30px; height: 30px;
-  border-radius: var(--r-pill);
-  border: 1px solid rgba(255,255,255,0.28);
-  display: grid; place-items: center;
-  font-size: 13px; font-weight: 700;
-  color: rgba(243,249,248,0.9);
-  background: rgba(255,255,255,0.06);
-}
-.timeline-title { font-size: 15px; font-weight: 600; }
-.timeline-state { margin: 4px 0 0; font-size: 12px; color: var(--warn); }
-.timeline-step.done .timeline-state { color: var(--ok); }
-.timeline-step.active { transform: translateY(-1px); }
-.timeline-step.active .timeline-marker {
-  border-color: rgba(82,243,200,0.8);
-  box-shadow: 0 0 0 1px rgba(82,243,200,0.25);
-}
-.timeline-step.done .timeline-marker {
-  border-color: var(--ok-border);
-  background: var(--ok-bg);
-  color: #062119;
-}
-.timeline-dots { margin: 0 0 0 14px; height: 18px; border-left: 2px dotted rgba(243,249,248,0.28); }
-.timeline-step.pop { animation: step-pop 240ms ease; }
-@keyframes step-pop {
-  0%   { transform: translateY(0) scale(1); }
-  40%  { transform: translateY(-2px) scale(1.01); }
-  100% { transform: translateY(0) scale(1); }
-}
-.coach-note { margin: 12px 0 0; font-size: 13px; color: var(--text-m); line-height: 1.55; min-height: 40px; }
-
-/* ── Status banner ── */
-.status-banner {
-  margin: 10px 0 0; font-size: 12px; line-height: 1.5;
-  padding: 8px 10px; border-radius: var(--r);
-  border: 1px solid var(--border); background: rgba(255,255,255,0.03);
-  color: var(--text-m);
-}
-.status-banner::before { content: 'ℹ '; font-weight: 700; margin-right: 4px; }
-.status-banner.ok    { border-color: rgba(61,245,194,0.35); background: rgba(61,245,194,0.08); color: #bff8ea; }
-.status-banner.ok::before    { content: '✓ '; }
-.status-banner.warn  { border-color: var(--warn-border); background: var(--warn-bg); color: #ffe5c7; }
-.status-banner.warn::before  { content: '⚠ '; }
-.status-banner.error { border-color: rgba(255,98,98,0.4); background: rgba(255,98,98,0.10); color: #ffd3d3; }
-.status-banner.error::before { content: '✗ '; }
-
-/* ── OBS grid ── */
-.obs-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto auto;
-  gap: 10px; align-items: end; margin-top: 14px;
-}
-
-.btn.subtle { background: rgba(255,255,255,0.04); }
-
-@media (prefers-reduced-motion: reduce) {
-  .timeline-step, .timeline-step.pop { transition: none; animation: none; }
-}
-@media (max-width: 900px) {
-  .hub-shell { grid-template-columns: 1fr; }
-  .hub-left { position: static; }
-  .obs-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Onboarding Modal ── */
-#onboarding-backdrop {
-  position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-}
-#onboarding-modal {
-  background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 36px 40px;
-  width: min(560px, 92vw); position: relative;
-}
-.ob-steps { display: flex; flex-direction: column; gap: 16px; margin: 24px 0; }
-.ob-step {
-  display: grid; grid-template-columns: 32px 1fr;
-  gap: 14px; align-items: start;
-}
-.ob-num {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--acc-bg); border: 1px solid var(--acc-border);
-  color: var(--acc2); font-size: 13px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.ob-step-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-.ob-step-desc  { font-size: 12px; color: var(--text-m); line-height: 1.6; }
-.ob-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
-
-
-</style>
 </head>
 <body>
 
@@ -240,692 +78,123 @@
   <a href="/tool/widgeturls" class="btn sm" style="padding:5px 8px" data-i18n="nav.widgeturls">Widget URLs</a>
   <a href="/tool/settings" class="btn sm" style="padding:5px 8px" data-i18n="nav.settings">Einstellungen</a>
 </header>
-  <main class="app">
 
-    <div class="hub-shell">
+<main class="app">
 
-      <!-- ── Linke Spalte: Setup Guide → OBS → ControlDeck ── -->
-      <div class="hub-left">
+  <div class="hub-shell">
 
-        <aside class="card quickstart" id="hub-quickstart">
-          <div class="quickstart-head">
+    <!-- ── Linke Spalte: Setup Guide → OBS → ControlDeck ── -->
+    <div class="hub-left">
+
+      <aside class="card quickstart" id="hub-quickstart">
+        <div class="quickstart-head">
+          <div>
+            <div class="kicker" data-i18n="quickstart.kicker">Setup Fahrplan</div>
+            <h2 style="margin:6px 0 4px;font-size:18px" data-i18n="quickstart.heading">In 3 Schritten live gehen</h2>
+            <p class="tag" data-i18n="quickstart.tag">Ein klarer Ablauf links, alle Arbeitsflächen rechts.</p>
+          </div>
+        </div>
+        <div class="steps-vertical">
+          <article class="timeline-step" id="hub-step-platforms">
+            <div class="timeline-marker">1</div>
             <div>
-              <div class="kicker" data-i18n="quickstart.kicker">Setup Fahrplan</div>
-              <h2 style="margin:6px 0 4px;font-size:18px" data-i18n="quickstart.heading">In 3 Schritten live gehen</h2>
-              <p class="tag" data-i18n="quickstart.tag">Ein klarer Ablauf links, alle Arbeitsflächen rechts.</p>
+              <p class="timeline-title" data-i18n="quickstart.step1">Plattform verbinden</p>
+              <p class="timeline-state" id="hub-step-platforms-state" data-i18n="quickstart.open">Offen</p>
             </div>
-          </div>
-          <div class="steps-vertical">
-            <article class="timeline-step" id="hub-step-platforms">
-              <div class="timeline-marker">1</div>
-              <div>
-                <p class="timeline-title" data-i18n="quickstart.step1">Plattform verbinden</p>
-                <p class="timeline-state" id="hub-step-platforms-state" data-i18n="quickstart.open">Offen</p>
-              </div>
-            </article>
-            <div class="timeline-dots" aria-hidden="true"></div>
-            <article class="timeline-step" id="hub-step-obs">
-              <div class="timeline-marker">2</div>
-              <div>
-                <p class="timeline-title" data-i18n="quickstart.step2">OBS verbinden</p>
-                <p class="timeline-state" id="hub-step-obs-state" data-i18n="quickstart.open">Offen</p>
-              </div>
-            </article>
-            <div class="timeline-dots" aria-hidden="true"></div>
-            <article class="timeline-step" id="hub-step-tools">
-              <div class="timeline-marker">3</div>
-              <div>
-                <p class="timeline-title" data-i18n="quickstart.step3">Tool starten</p>
-                <p class="timeline-state" id="hub-step-tools-state" data-i18n="quickstart.open">Offen</p>
-              </div>
-            </article>
-          </div>
-          <p class="coach-note" id="hub-coach-note" data-i18n="quickstart.coach_default">Starte mit Schritt 1: Verbinde zuerst Twitch oder YouTube. Danach führt dich der Hub automatisch weiter.</p>
-          <button class="btn primary" id="hub-next-action-btn" type="button" data-i18n="quickstart.next">Nächster Schritt</button>
-        </aside>
-
-        <section class="card" id="hub-obs-card">
-          <div class="kicker" style="margin-bottom:4px" data-i18n="obs.kicker">Zentrale Verbindung</div>
-          <h2 style="margin:6px 0 4px;font-size:18px" data-i18n="obs.heading">OBS WebSocket</h2>
-          <p class="tag" data-i18n="obs.tag">Einmalig verbinden — ScenePilot &amp; TrackPulse nutzen diese Verbindung gemeinsam.</p>
-          <div class="obs-sidebar-fields">
+          </article>
+          <div class="timeline-dots" aria-hidden="true"></div>
+          <article class="timeline-step" id="hub-step-obs">
+            <div class="timeline-marker">2</div>
             <div>
-              <label data-i18n="obs.address">Adresse</label>
-              <input id="hub-obs-url" type="text" value="ws://localhost:4455">
+              <p class="timeline-title" data-i18n="quickstart.step2">OBS verbinden</p>
+              <p class="timeline-state" id="hub-step-obs-state" data-i18n="quickstart.open">Offen</p>
             </div>
+          </article>
+          <div class="timeline-dots" aria-hidden="true"></div>
+          <article class="timeline-step" id="hub-step-tools">
+            <div class="timeline-marker">3</div>
             <div>
-              <label data-i18n="obs.password">Passwort</label>
-              <input id="hub-obs-password" type="password" data-i18n-placeholder="obs.password_placeholder" placeholder="optional">
+              <p class="timeline-title" data-i18n="quickstart.step3">Tool starten</p>
+              <p class="timeline-state" id="hub-step-tools-state" data-i18n="quickstart.open">Offen</p>
             </div>
-            <div style="display:flex;gap:8px">
-              <button class="btn primary" id="hub-obs-connect-btn" style="flex:1" data-i18n="btn.connect">Verbinden</button>
-              <button class="btn" id="hub-obs-disconnect-btn" style="flex:1" data-i18n="btn.disconnect">Trennen</button>
-            </div>
+          </article>
+        </div>
+        <p class="coach-note" id="hub-coach-note" data-i18n="quickstart.coach_default">Starte mit Schritt 1: Verbinde zuerst Twitch oder YouTube. Danach führt dich der Hub automatisch weiter.</p>
+        <button class="btn primary" id="hub-next-action-btn" type="button" data-i18n="quickstart.next">Nächster Schritt</button>
+      </aside>
+
+      <section class="card" id="hub-obs-card">
+        <div class="kicker" style="margin-bottom:4px" data-i18n="obs.kicker">Zentrale Verbindung</div>
+        <h2 style="margin:6px 0 4px;font-size:18px" data-i18n="obs.heading">OBS WebSocket</h2>
+        <p class="tag" data-i18n="obs.tag">Einmalig verbinden — ScenePilot &amp; TrackPulse nutzen diese Verbindung gemeinsam.</p>
+        <div class="obs-sidebar-fields">
+          <div>
+            <label data-i18n="obs.address">Adresse</label>
+            <input id="hub-obs-url" type="text" value="ws://localhost:4455">
           </div>
-          <p id="hub-obs-status" style="margin:10px 0 0;font-size:13px;color:rgba(238,242,255,0.56)" data-i18n="obs.status.unknown">Status: unbekannt</p>
-        </section>
-
-        <article class="card" id="hub-cd-card"></article>
-
-      </div><!-- /.hub-left -->
-
-      <!-- ── Rechte Spalte: Platforms → Tool-Kacheln ── -->
-      <div class="hub-right">
-
-        <section class="card" id="hub-platforms-card">
-          <div class="kicker" style="margin-bottom:4px" data-i18n="platforms.kicker">Zentrale Verbindung</div>
-          <h2 style="margin:6px 0 4px;font-size:18px" data-i18n="platforms.heading">Streaming-Plattformen</h2>
-          <p class="tag" data-i18n="platforms.tag">Verwalte Twitch und YouTube zentral über Kanalname oder Handle. ChatLink und EventForge nutzen diese Konfiguration gemeinsam.</p>
-          <div class="platform-grid">
-            <div class="platform-box">
-              <h3>Twitch</h3>
-              <label for="hub-tw-channel" data-i18n="twitch.channel_label">Kanalname</label>
-              <input id="hub-tw-channel" type="text" data-i18n-placeholder="twitch.channel_placeholder" placeholder="z.B. mein_kanal">
-              <p class="field-help" data-i18n="twitch.channel_help">Tipp: Ein verbundener Twitch-Kanal reicht bereits, um mit ChatLink und EventForge zu starten.</p>
-              <div style="display:flex;gap:8px;margin-top:10px;">
-                <button class="btn primary" id="hub-tw-connect-btn" onclick="connectTwitchHub()" style="flex:1" data-i18n="btn.connect">Verbinden</button>
-                <button class="btn" id="hub-tw-disconnect-btn" onclick="disconnectTwitchHub()" style="flex:1" data-i18n="btn.disconnect">Trennen</button>
-              </div>
-              <button class="btn oauth-btn" id="hub-tw-oauth-btn" onclick="startTwitchOAuth()" style="margin-top:8px;width:100%" data-i18n="twitch.login">🔐 Mit Twitch einloggen</button>
-              <p class="platform-status" id="hub-tw-status"></p>
-            </div>
-
-            <div class="platform-box">
-              <h3>YouTube</h3>
-              <label for="hub-yt-channel" data-i18n="yt.channel_label">Kanalname oder Handle</label>
-              <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;">
-                <input id="hub-yt-channel" type="text" data-i18n-placeholder="yt.channel_placeholder" placeholder="z.B. @mein_kanal">
-                <button class="btn" id="hub-yt-find-btn" onclick="findYouTubeLiveHub()" data-i18n="yt.find_stream">Aktiven Stream suchen</button>
-              </div>
-              <p class="field-help" data-i18n="yt.channel_help">Du kannst zuerst speichern und später nach einem aktiven Stream suchen.</p>
-              <div style="display:flex;gap:8px;margin-top:10px;">
-                <button class="btn primary" id="hub-yt-connect-btn" onclick="saveYouTubeHub()" style="flex:1" data-i18n="btn.save">Speichern</button>
-                <button class="btn" id="hub-yt-disconnect-btn" onclick="disconnectYouTubeHub()" style="flex:1" data-i18n="btn.disconnect">Trennen</button>
-              </div>
-              <p class="platform-status" id="hub-yt-status"></p>
-            </div>
+          <div>
+            <label data-i18n="obs.password">Passwort</label>
+            <input id="hub-obs-password" type="password" data-i18n-placeholder="obs.password_placeholder" placeholder="optional">
           </div>
-          <p id="hub-platforms-status" class="status-banner" role="status" aria-live="polite"></p>
-        </section>
-
-        <div class="grid" id="tools-grid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr))"></div>
-
-      </div><!-- /.hub-right -->
-
-    </div>
-
-  </main>
-
-<script>
-let toolsRenderInFlight = false;
-let nextAction = () => {};
-const hubState = {
-  tools: [],
-  platforms: null,
-  obs: null,
-};
-
-function setHubStatus(message, type = 'warn') {
-  const el = document.getElementById('hub-platforms-status');
-  if (!el) return;
-  el.textContent = message || '';
-  el.className = 'status-banner';
-  if (message) el.classList.add(type);
-}
-
-function buildActionHint(message, context = 'general') {
-  const lower = String(message || '').toLowerCase();
-  if (!lower) return '';
-  if (lower.includes('failed to fetch') || lower.includes('network') || lower.includes('nicht geladen')) {
-    return t('hint.app_offline');
-  }
-  if (context === 'obs' && (lower.includes('connection') || lower.includes('verbindung') || lower.includes('websocket'))) {
-    return t('hint.obs_connection');
-  }
-  if (context === 'youtube' && (lower.includes('stream') || lower.includes('gefunden') || lower.includes('lookup'))) {
-    return t('hint.yt_no_stream');
-  }
-  if (context === 'twitch' && lower.includes('kanal')) {
-    return t('hint.twitch_channel');
-  }
-  return '';
-}
-
-function withHint(message, context) {
-  const hint = buildActionHint(message, context);
-  return hint ? `${message} ${hint}` : message;
-}
-
-(async function init() {
-  await i18n.ready();
-  i18n.createSwitcher(document.getElementById('lang-switcher'));
-  document.addEventListener('langchange', () => {
-    renderTools().catch(() => {});
-    pollPlatformsStatus().catch(() => {});
-    pollObsStatus().catch(() => {});
-  });
-  await renderTools();
-  initPlatformsPanel();
-  initObsPanel();
-  document.getElementById('hub-next-action-btn').addEventListener('click', () => nextAction());
-  checkHotkeyConflicts().catch(() => {});
-  setInterval(() => {
-    renderTools().catch(() => {});
-    checkHotkeyConflicts().catch(() => {});
-  }, 4000);
-})();
-
-async function checkHotkeyConflicts() {
-  try {
-    const settings = await safeJson('/api/settings');
-    const hk = settings?.hotkeys || {};
-    const vals = Object.values(hk).filter(Boolean);
-    const dupes = vals.filter((v, i) => vals.indexOf(v) !== i);
-    let banner = document.getElementById('hotkey-conflict-banner');
-    if (dupes.length > 0) {
-      if (!banner) {
-        banner = document.createElement('p');
-        banner.id = 'hotkey-conflict-banner';
-        banner.className = 'status-banner warn';
-        banner.style.marginTop = '10px';
-        const grid = document.getElementById('tools-grid');
-        if (grid) grid.after(banner);
-      }
-      banner.textContent = t('msg.hotkey_conflict', { key: dupes[0] });
-    } else if (banner) {
-      banner.remove();
-    }
-  } catch { /* non-fatal */ }
-}
-
-// ─── OBS Connection Panel ────────────────────────────────────────────────────
-function initObsPanel() {
-  document.getElementById('hub-obs-connect-btn').addEventListener('click', connectObs);
-  document.getElementById('hub-obs-disconnect-btn').addEventListener('click', disconnectObs);
-  pollObsStatus();
-  setInterval(pollObsStatus, 3000);
-}
-
-// ─── Platforms Panel ──────────────────────────────────────────────────────────
-function initPlatformsPanel() {
-  const ytInput = document.getElementById('hub-yt-channel');
-  ytInput.addEventListener('input', () => {
-    ytInput.classList.remove('input-error');
-  });
-  pollPlatformsStatus();
-  setInterval(pollPlatformsStatus, 3000);
-}
-
-async function pollPlatformsStatus() {
-  try {
-    const s = await safeJson('/api/platforms');
-    hubState.platforms = s;
-    const twStatus = document.getElementById('hub-tw-status');
-    const twInput = document.getElementById('hub-tw-channel');
-    if (s.twitch?.connected) {
-      twStatus.innerHTML = `${t('status.prefix')}: <span style="color:#c9a0ff">${t('twitch.status.connected')}</span>${s.twitch?.channel ? ` · #${escapeHtml(s.twitch.channel)}` : ''}`;
-    } else {
-      twStatus.innerHTML = `${t('status.prefix')}: <span style="color:#ffb26b">${t('twitch.status.disconnected')}</span>`;
-    }
-    if (!twInput.value && s.twitch?.channel) twInput.value = s.twitch.channel;
-    const twOauthBtn = document.getElementById('hub-tw-oauth-btn');
-    if (twOauthBtn && !twOauthBtn.disabled) {
-      if (s.twitch?.oauthLoggedIn) {
-        twOauthBtn.textContent = t('twitch.logged_in', { user: s.twitch.username || 'Twitch' });
-        twOauthBtn.classList.add('oauth-active');
-      } else {
-        twOauthBtn.textContent = t('twitch.login');
-        twOauthBtn.classList.remove('oauth-active');
-        twOauthBtn.onclick = startTwitchOAuth;
-      }
-    }
-
-    const ytStatus = document.getElementById('hub-yt-status');
-    const ytInput = document.getElementById('hub-yt-channel');
-    const ytHasLookupError = !!s.youtube?.lookupError;
-    if (s.youtube?.enabled && s.youtube?.videoId) {
-      ytStatus.innerHTML = `${t('status.prefix')}: <span style="color:#ff9090">${t('yt.status.live')}</span>${s.youtube?.channel ? ` · ${escapeHtml(s.youtube.channel)}` : ''}${s.youtube?.title ? ` · ${escapeHtml(s.youtube.title)}` : ''}`;
-    } else if (s.youtube?.channel) {
-      ytStatus.innerHTML = `${t('status.prefix')}: <span style="color:#ffd36f">${t('yt.status.saved')}</span> · ${escapeHtml(s.youtube.channel)}`;
-    } else {
-      ytStatus.innerHTML = `${t('status.prefix')}: <span style="color:#ffb26b">${t('yt.status.disconnected')}</span>`;
-    }
-    if (!ytInput.value && s.youtube?.channel) ytInput.value = s.youtube.channel;
-    ytInput.classList.toggle('input-error', ytHasLookupError);
-
-    if (!document.getElementById('hub-platforms-status').textContent) {
-      setHubStatus(t('msg.all_ready'), 'warn');
-    }
-    updateHubGuidance();
-  } catch (e) {
-    hubState.platforms = null;
-    setHubStatus(withHint(e.message || t('msg.platform_status_failed'), 'general'), 'error');
-    updateHubGuidance();
-  }
-}
-
-async function connectTwitchHub() {
-  const btn = document.getElementById('hub-tw-connect-btn');
-  const channel = document.getElementById('hub-tw-channel').value.trim();
-  if (!channel) {
-    setHubStatus(t('msg.twitch.enter_channel'), 'warn');
-    return;
-  }
-  btn.disabled = true;
-  btn.textContent = t('btn.connecting');
-  try {
-    await safeJson('/api/platforms/twitch/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel }),
-    });
-    setHubStatus(t('msg.twitch.connected'), 'ok');
-  } catch (e) {
-    setHubStatus(withHint(e.message || t('msg.twitch.connect_failed'), 'twitch'), 'error');
-  } finally {
-    btn.textContent = t('btn.connect');
-    btn.disabled = false;
-    await pollPlatformsStatus();
-  }
-}
-
-async function disconnectTwitchHub() {
-  await fetch('/api/platforms/twitch/disconnect', { method: 'POST' }).catch(() => {});
-  setHubStatus(t('msg.twitch.disconnected'), 'warn');
-  await pollPlatformsStatus();
-}
-
-async function saveYouTubeHub() {
-  const btn = document.getElementById('hub-yt-connect-btn');
-  const channel = document.getElementById('hub-yt-channel').value.trim();
-  if (!channel) {
-    setHubStatus(t('msg.yt.enter_channel'), 'warn');
-    return;
-  }
-  btn.disabled = true;
-  btn.textContent = t('btn.saving');
-  try {
-    await safeJson('/api/platforms/youtube/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel }),
-    });
-    document.getElementById('hub-yt-channel').classList.remove('input-error');
-    setHubStatus(t('msg.yt.saved'), 'ok');
-  } catch (e) {
-    setHubStatus(withHint(e.message || t('msg.yt.save_failed'), 'youtube'), 'error');
-  } finally {
-    btn.textContent = t('btn.save');
-    btn.disabled = false;
-    await pollPlatformsStatus();
-  }
-}
-
-async function findYouTubeLiveHub() {
-  const btn = document.getElementById('hub-yt-find-btn');
-  const channel = document.getElementById('hub-yt-channel').value.trim();
-  if (!channel) {
-    setHubStatus(t('msg.yt.enter_first'), 'warn');
-    return;
-  }
-  btn.disabled = true;
-  btn.textContent = t('btn.searching');
-  try {
-    const data = await safeJson('/api/platforms/youtube/find-live', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel }),
-    });
-    setHubStatus(data.title
-      ? t('msg.yt.stream_found', { title: data.title })
-      : t('msg.yt.stream_found_generic'), 'ok');
-  } catch (e) {
-    setHubStatus(withHint(e.message || t('msg.yt.stream_not_found'), 'youtube'), 'error');
-  } finally {
-    btn.textContent = t('yt.find_stream');
-    btn.disabled = false;
-    await pollPlatformsStatus();
-  }
-}
-
-async function disconnectYouTubeHub() {
-  await fetch('/api/platforms/youtube/disconnect', { method: 'POST' }).catch(() => {});
-  document.getElementById('hub-yt-channel').classList.remove('input-error');
-  setHubStatus(t('msg.yt.disconnected'), 'warn');
-  await pollPlatformsStatus();
-}
-
-async function startTwitchOAuth() {
-  const btn = document.getElementById('hub-tw-oauth-btn');
-  btn.disabled = true;
-  btn.textContent = t('btn.browser_opening');
-  try {
-    const d = await safeJson('/api/platforms/twitch/oauth/start', { method: 'POST' });
-    if (d.flow === 'device') {
-      if (!d.ok || !d.verificationUri || !d.userCode || !d.pollState) {
-        throw new Error(d.error || t('msg.twitch.device_flow_failed'));
-      }
-      if (window.splitflow?.openExternal) await window.splitflow.openExternal(d.verificationUri);
-      else window.open(d.verificationUri, '_blank', 'noopener,noreferrer');
-      btn.textContent = `Code: ${d.userCode}`;
-      setHubStatus(t('msg.twitch.code', { code: d.userCode }), 'warn');
-      const timer = setInterval(async () => {
-        try {
-          const pollData = await safeJson(`/api/platforms/twitch/oauth/poll?state=${encodeURIComponent(d.pollState)}`);
-          if (pollData.status === 'pending') return;
-          clearInterval(timer);
-          btn.disabled = false;
-          await pollPlatformsStatus();
-          btn.textContent = t('twitch.logged_in', { user: pollData.username || hubState.platforms?.twitch?.username || 'Twitch' });
-          btn.classList.add('oauth-active');
-          setHubStatus(t('msg.twitch.oauth_ok'), 'ok');
-        } catch (e) {
-          clearInterval(timer);
-          btn.disabled = false;
-          btn.textContent = t('twitch.login');
-          btn.classList.remove('oauth-active');
-          setHubStatus(e.message || t('msg.twitch.oauth_failed'), 'error');
-        }
-      }, Math.max(1000, Number(d.interval || 5) * 1000));
-      return;
-    }
-
-    if (!d.ok || !d.url) throw new Error(d.error || t('msg.twitch.oauth_failed'));
-
-    if (window.splitflow?.openExternal) await window.splitflow.openExternal(d.url);
-    else window.open(d.url, '_blank', 'noopener,noreferrer');
-    setHubStatus(t('msg.twitch.browser_opened'), 'warn');
-    const timer = setInterval(async () => {
-      await pollPlatformsStatus();
-      if (hubState.platforms?.twitch?.oauthLoggedIn) {
-        clearInterval(timer);
-        btn.disabled = false;
-        btn.textContent = t('twitch.logged_in', { user: hubState.platforms.twitch.username || 'Twitch' });
-        btn.classList.add('oauth-active');
-        setHubStatus(t('msg.twitch.oauth_ok'), 'ok');
-      }
-    }, 1200);
-  } catch (e) {
-    btn.disabled = false;
-    btn.textContent = t('twitch.login');
-    setHubStatus(e.message || t('msg.twitch.oauth_failed'), 'error');
-  }
-}
-
-
-async function pollObsStatus() {
-  try {
-    const s = await safeJson('/api/scenepilot/status');
-    hubState.obs = s;
-    const el = document.getElementById('hub-obs-status');
-    if (s.connected) {
-      el.innerHTML = `${t('status.prefix')}: <span style="color:#44db9b;font-weight:600">${t('obs.status.connected')}</span>`;
-    } else {
-      const err = s.lastError ? ` — ${escapeHtml(s.lastError)}` : '';
-      el.innerHTML = `${t('status.prefix')}: <span style="color:#ffb26b;font-weight:600">${t('obs.status.disconnected')}</span>${err}`;
-    }
-    updateHubGuidance();
-  } catch { /* non-fatal */ }
-}
-
-async function connectObs() {
-  const btn = document.getElementById('hub-obs-connect-btn');
-  btn.disabled = true;
-  btn.textContent = t('btn.connecting');
-  try {
-    await safeJson('/api/scenepilot/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        address: document.getElementById('hub-obs-url').value.trim(),
-        password: document.getElementById('hub-obs-password').value,
-      }),
-    });
-    await pollObsStatus();
-  } catch (e) {
-    document.getElementById('hub-obs-status').innerHTML =
-      `${t('status.prefix')}: <span style="color:#ff6b6b">${t('msg.obs.error', { msg: escapeHtml(e.message) })}</span>`;
-    setHubStatus(withHint(e.message || t('msg.obs.connect_failed'), 'obs'), 'error');
-  } finally {
-    btn.textContent = t('btn.connect');
-    btn.disabled = false;
-  }
-}
-
-async function disconnectObs() {
-  await fetch('/api/scenepilot/disconnect', { method: 'POST' }).catch(() => {});
-  await pollObsStatus();
-}
-
-// ─── Tools Grid ──────────────────────────────────────────────────────────────
-
-async function renderTools() {
-  if (toolsRenderInFlight) return;
-  toolsRenderInFlight = true;
-  const grid = document.getElementById('tools-grid');
-  try {
-    const tools = await safeJson('/api/tools');
-    hubState.tools = Array.isArray(tools) ? tools : [];
-    grid.innerHTML = '';
-
-    // Render ControlDeck into the sidebar placeholder
-    const cdTool = tools.find(t => t.id === 'controldeck');
-    const cdCard = document.getElementById('hub-cd-card');
-    if (cdTool && cdCard) {
-      cdCard.innerHTML = `
-        <div class="card-head">
-          <h2 class="title">${escapeHtml(cdTool.name)}</h2>
+          <div style="display:flex;gap:8px">
+            <button class="btn primary" id="hub-obs-connect-btn" style="flex:1" data-i18n="btn.connect">Verbinden</button>
+            <button class="btn" id="hub-obs-disconnect-btn" style="flex:1" data-i18n="btn.disconnect">Trennen</button>
+          </div>
         </div>
-        <p class="tagline">${escapeHtml(cdTool.taglineKey ? t(cdTool.taglineKey) : (cdTool.tagline || ''))}</p>
-        <div class="meta">
-          <span class="category">${escapeHtml(cdTool.categoryKey ? t(cdTool.categoryKey) : (cdTool.category || t('tool.category.general')))}</span>
-          <a class="btn" href="${cdTool.route}">${t('btn.open')}</a>
+        <p id="hub-obs-status" style="margin:10px 0 0;font-size:13px;color:rgba(238,242,255,0.56)" data-i18n="obs.status.unknown">Status: unbekannt</p>
+      </section>
+
+      <article class="card" id="hub-cd-card"></article>
+
+    </div><!-- /.hub-left -->
+
+    <!-- ── Rechte Spalte: Platforms → Tool-Kacheln ── -->
+    <div class="hub-right">
+
+      <section class="card" id="hub-platforms-card">
+        <div class="kicker" style="margin-bottom:4px" data-i18n="platforms.kicker">Zentrale Verbindung</div>
+        <h2 style="margin:6px 0 4px;font-size:18px" data-i18n="platforms.heading">Streaming-Plattformen</h2>
+        <p class="tag" data-i18n="platforms.tag">Verwalte Twitch und YouTube zentral über Kanalname oder Handle. ChatLink und EventForge nutzen diese Konfiguration gemeinsam.</p>
+        <div class="platform-grid">
+          <div class="platform-box">
+            <h3>Twitch</h3>
+            <label for="hub-tw-channel" data-i18n="twitch.channel_label">Kanalname</label>
+            <input id="hub-tw-channel" type="text" data-i18n-placeholder="twitch.channel_placeholder" placeholder="z.B. mein_kanal">
+            <p class="field-help" data-i18n="twitch.channel_help">Tipp: Ein verbundener Twitch-Kanal reicht bereits, um mit ChatLink und EventForge zu starten.</p>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="btn primary" id="hub-tw-connect-btn" onclick="connectTwitchHub()" style="flex:1" data-i18n="btn.connect">Verbinden</button>
+              <button class="btn" id="hub-tw-disconnect-btn" onclick="disconnectTwitchHub()" style="flex:1" data-i18n="btn.disconnect">Trennen</button>
+            </div>
+            <button class="btn oauth-btn" id="hub-tw-oauth-btn" onclick="startTwitchOAuth()" style="margin-top:8px;width:100%" data-i18n="twitch.login">🔐 Mit Twitch einloggen</button>
+            <p class="platform-status" id="hub-tw-status"></p>
+          </div>
+
+          <div class="platform-box">
+            <h3>YouTube</h3>
+            <label for="hub-yt-channel" data-i18n="yt.channel_label">Kanalname oder Handle</label>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;">
+              <input id="hub-yt-channel" type="text" data-i18n-placeholder="yt.channel_placeholder" placeholder="z.B. @mein_kanal">
+              <button class="btn" id="hub-yt-find-btn" onclick="findYouTubeLiveHub()" data-i18n="yt.find_stream">Aktiven Stream suchen</button>
+            </div>
+            <p class="field-help" data-i18n="yt.channel_help">Du kannst zuerst speichern und später nach einem aktiven Stream suchen.</p>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="btn primary" id="hub-yt-connect-btn" onclick="saveYouTubeHub()" style="flex:1" data-i18n="btn.save">Speichern</button>
+              <button class="btn" id="hub-yt-disconnect-btn" onclick="disconnectYouTubeHub()" style="flex:1" data-i18n="btn.disconnect">Trennen</button>
+            </div>
+            <p class="platform-status" id="hub-yt-status"></p>
+          </div>
         </div>
-      `;
-    }
+        <p id="hub-platforms-status" class="status-banner" role="status" aria-live="polite"></p>
+      </section>
 
-    tools.filter(tool => tool.showInGrid !== false).forEach(tool => {
-      const card = document.createElement('article');
-      card.className = 'card';
-      const ready = tool.status === 'ready';
-      const hasBgService = tool.bgService !== false;
-      const running = hasBgService && !!tool.runtime?.running;
-      // Badge im Header: aktiv/inaktiv für bgService-Tools
-      const headerBadge = hasBgService
-        ? (running
-          ? `<span class="badge running">${t('badge.active')}</span>`
-          : `<span class="badge stopped">${t('badge.inactive')}</span>`)
-        : '';
-      const startButton = (hasBgService && !running)
-        ? `<button class="btn primary" data-tool-start="${escapeHtml(tool.id)}">${t('btn.start')}</button>`
-        : '';
-      const stopButton = (hasBgService && running)
-        ? `<button class="btn warn" data-tool-stop="${escapeHtml(tool.id)}">${t('btn.stop')}</button>`
-        : '';
-      card.innerHTML = `
-        <div class="card-head">
-          <h2 class="title">${escapeHtml(tool.name)}</h2>
-          ${headerBadge}
-        </div>
-        <p class="tagline">${escapeHtml(tool.taglineKey ? t(tool.taglineKey) : (tool.tagline || ''))}</p>
-        <div class="meta">
-          <span class="category">${escapeHtml(tool.categoryKey ? t(tool.categoryKey) : (tool.category || t('tool.category.general')))}</span>
-          ${ready
-            ? `<div class="actions">
-                ${startButton}
-                ${stopButton}
-                <a class="btn" href="${tool.route}">${t('btn.open')}</a>
-              </div>`
-            : `<button class="btn" disabled>${t('badge.unavailable')}</button>`}
-        </div>
-      `;
-      grid.appendChild(card);
-    });
+      <div class="grid" id="tools-grid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr))"></div>
 
-    const startButtons = grid.querySelectorAll('[data-tool-start]');
-    startButtons.forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const toolId = btn.getAttribute('data-tool-start');
-        btn.disabled = true;
-        const prevText = btn.textContent;
-        btn.textContent = t('btn.starting');
-        try {
-          await safeJson(`/api/tools/${encodeURIComponent(toolId)}/start`, { method: 'POST' });
-          setHubStatus(t('msg.tool.started'), 'ok');
-        } catch (e) {
-          setHubStatus(withHint(t('msg.tool.start_failed', { msg: e.message }), 'general'), 'error');
-        } finally {
-          btn.textContent = prevText;
-          btn.disabled = false;
-          await renderTools();
-          updateHubGuidance();
-        }
-      });
-    });
+    </div><!-- /.hub-right -->
 
-    const stopButtons = grid.querySelectorAll('[data-tool-stop]');
-    stopButtons.forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const toolId = btn.getAttribute('data-tool-stop');
-        btn.disabled = true;
-        const prevText = btn.textContent;
-        btn.textContent = t('btn.stopping');
-        try {
-          await safeJson(`/api/tools/${encodeURIComponent(toolId)}/stop`, { method: 'POST' });
-          setHubStatus(t('msg.tool.stopped'), 'warn');
-        } catch (e) {
-          setHubStatus(withHint(t('msg.tool.stop_failed', { msg: e.message }), 'general'), 'error');
-        } finally {
-          btn.textContent = prevText;
-          btn.disabled = false;
-          await renderTools();
-          updateHubGuidance();
-        }
-      });
-    });
-    updateHubGuidance();
-  } catch (e) {
-    hubState.tools = [];
-    grid.innerHTML = `<article class="card"><h2 class="title">${t('msg.tool.unavailable')}</h2><p class="tagline">${t('msg.tool.load_failed')}</p></article>`;
-    setHubStatus(withHint(t('msg.tool.list_failed'), 'general'), 'error');
-    updateHubGuidance();
-  } finally {
-    toolsRenderInFlight = false;
-  }
-}
+  </div>
 
-async function startToolFromCoach(toolId) {
-  try {
-    await safeJson(`/api/tools/${encodeURIComponent(toolId)}/start`, { method: 'POST' });
-    setHubStatus(t('msg.tool.started'), 'ok');
-    await renderTools();
-  } catch (e) {
-    document.getElementById('hub-coach-note').textContent = t('msg.tool.start_failed', { msg: e.message });
-    setHubStatus(withHint(t('msg.tool.start_failed', { msg: e.message }), 'general'), 'error');
-  }
-}
+</main>
 
-function markStep(stepId, stateId, done, active, text) {
-  const step = document.getElementById(stepId);
-  const state = document.getElementById(stateId);
-  if (!step || !state) return;
-  const wasDone = step.classList.contains('done');
-  step.classList.toggle('done', !!done);
-  step.classList.toggle('active', !!active);
-  state.textContent = text;
-  if (done && !wasDone) {
-    step.classList.remove('pop');
-    void step.offsetWidth;
-    step.classList.add('pop');
-  }
-}
-
-function updateHubGuidance() {
-  const p = hubState.platforms || {};
-  const obs = hubState.obs || {};
-  const tools = hubState.tools || [];
-
-  const platformReady = !!(p.twitch?.connected || p.youtube?.channel);
-  const obsReady = !!obs.connected;
-  const runningTool = tools.find(t => t?.runtime?.running && t?.id !== 'splitflow');
-  const toolsReady = platformReady && obsReady && !!runningTool;
-
-  const coachNote = document.getElementById('hub-coach-note');
-  const nextBtn = document.getElementById('hub-next-action-btn');
-
-  markStep('hub-step-platforms', 'hub-step-platforms-state', platformReady, !platformReady, platformReady ? t('quickstart.done') : t('quickstart.open'));
-  markStep('hub-step-obs', 'hub-step-obs-state', obsReady, platformReady && !obsReady, obsReady ? t('quickstart.done') : t('quickstart.open'));
-  markStep(
-    'hub-step-tools',
-    'hub-step-tools-state',
-    toolsReady,
-    platformReady && obsReady && !toolsReady,
-    toolsReady
-      ? t('guide.tool_running', { name: runningTool.name || runningTool.id })
-      : (platformReady && obsReady ? t('quickstart.open') : t('guide.waiting'))
-  );
-
-  if (!platformReady) {
-    const isFreshSetup = !p.twitch?.channel && !p.youtube?.channel;
-    coachNote.textContent = isFreshSetup
-      ? t('guide.fresh_setup')
-      : t('guide.connect_first');
-    nextBtn.textContent = t('guide.platforms_btn');
-    nextAction = () => {
-      const input = document.getElementById('hub-tw-channel');
-      input.focus();
-      input.select();
-    };
-    return;
-  }
-
-  if (!obsReady) {
-    coachNote.textContent = t('guide.connect_obs');
-    nextBtn.textContent = t('guide.obs_btn');
-    nextAction = () => connectObs();
-    return;
-  }
-
-  if (!toolsReady) {
-    coachNote.textContent = t('guide.open_tool');
-    nextBtn.textContent = t('guide.tool_btn');
-    nextAction = () => { window.location.href = '/tool/controldeck'; };
-    return;
-  }
-
-  coachNote.textContent = t('guide.all_done');
-  const preferredTool = tools.find(tool => tool?.runtime?.running && tool?.route);
-  nextBtn.textContent = preferredTool ? t('guide.tool_open', { name: preferredTool.name }) : t('guide.chatlink_open');
-  nextAction = () => {
-    window.location.href = preferredTool?.route || '/tool/chatdeck';
-  };
-}
-
-const escapeHtml = esc;
-
-// ── Onboarding ────────────────────────────────────────────────────────────────
-
-async function checkOnboarding() {
-  try {
-    const s = await safeJson('/api/settings');
-    if (!s.onboardingComplete) {
-      document.getElementById('onboarding-backdrop').style.display = 'flex';
-    }
-  } catch {}
-}
-
-async function dismissOnboarding() {
-  document.getElementById('onboarding-backdrop').style.display = 'none';
-  try {
-    await safeJson('/api/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ onboardingComplete: true }),
-    });
-  } catch {}
-}
-
-checkOnboarding();
-</script>
+<script src="/tool/hub/launcher.js"></script>
 </body>
 </html>

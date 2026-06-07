@@ -23,6 +23,9 @@ const DEFAULTS = {
     // { id, trigger, label, action, actionParam }
     // action: 'none' | 'obs-scene' | 'timer-start' | 'timer-reset'
   ],
+  intervalMessages: [
+    // { id, text, intervalMinutes, enabled }
+  ],
   display: {
     maxMessages: 200,
     showTimestamp: true,

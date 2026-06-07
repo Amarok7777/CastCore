@@ -438,6 +438,17 @@ class FlowForgeEngine {
     }
   }
 
+  // ─── Manual trigger ────────────────────────────────────────────────────────
+
+  async runFlowById(id) {
+    const flow = flowforge.getFlow(id);
+    if (!flow || flow.enabled === false) return;
+    for (const action of (flow.actions || [])) {
+      try { await this._runAction(action, {}, 0); }
+      catch (e) { console.error(`[FlowForge] manual run "${flow.name}" action ${action.type} error:`, e.message); }
+    }
+  }
+
   // ─── Core dispatch ─────────────────────────────────────────────────────────
 
   async _fire(triggerType, ctx) {

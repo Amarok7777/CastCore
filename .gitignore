@@ -5,6 +5,9 @@ node_modules/
 dist/
 out/
 
+#Documents
+docs/
+
 # Runtime data — never commit
 data/
 

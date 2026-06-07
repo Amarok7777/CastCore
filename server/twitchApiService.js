@@ -89,6 +89,15 @@ class TwitchApiService {
     return { ok: res.ok, status: res.status };
   }
 
+  async sendChatMessage({ accessToken, clientId, broadcasterId, senderId, message }) {
+    const res = await fetch('https://api.twitch.tv/helix/chat/messages', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Client-Id': clientId, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ broadcaster_id: String(broadcasterId), sender_id: String(senderId), message: String(message).slice(0, 500) }),
+    });
+    return { ok: res.ok, status: res.status };
+  }
+
   async fetchSubscriptions({ accessToken, clientId, broadcasterId, first = 30 }) {
     const headers = {
       Authorization: `Bearer ${accessToken}`,

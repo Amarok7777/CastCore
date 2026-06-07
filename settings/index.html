@@ -7,60 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/shared/design.css">
+<link rel="stylesheet" href="/tool/settings/settings.css">
 <script src="/shared/utils.js"></script>
 <script src="/shared/i18n.js"></script>
 <script src="/shared/toast.js"></script>
 <script src="/shared/winctrl.js" defer></script>
-<style>
-.app { width: min(860px, 94vw); margin: 24px auto 40px; display: flex; flex-direction: column; gap: 20px; }
-
-.section-hd {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
-  color: var(--text-s); padding-bottom: 8px; border-bottom: 1px solid var(--border-s);
-  margin-bottom: 14px;
-}
-.section-hd svg { color: var(--acc2); flex-shrink: 0; }
-
-.hotkey-rows { display: flex; flex-direction: column; }
-.hotkey-row {
-  display: grid; grid-template-columns: 30px 1fr auto;
-  align-items: center; gap: 12px;
-  padding: 10px 0; border-bottom: 1px solid var(--border-s);
-}
-.hotkey-row:last-child { border-bottom: none; }
-.hk-icon {
-  width: 30px; height: 30px; border-radius: var(--r-sm);
-  background: rgba(255,255,255,0.05); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center; color: var(--text-s);
-}
-.hk-label { font-size: 13px; color: var(--text); font-weight: 500; }
-.hk-desc  { font-size: 11px; color: var(--text-s); margin-top: 1px; }
-.hotkey-btn {
-  font-family: var(--mono); font-size: 12px; min-width: 120px; height: 32px;
-  border: 1px solid var(--border-m); background: rgba(255,255,255,0.06);
-  color: var(--text); cursor: pointer; border-radius: var(--r);
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-  transition: border-color .12s, background .12s, color .12s;
-}
-.hotkey-btn:hover { border-color: var(--border-focus); background: rgba(255,255,255,0.1); }
-.hotkey-btn.capture { border-color: var(--acc); background: var(--acc-bg); color: var(--acc2); animation: hk-pulse .8s ease infinite alternate; }
-.hotkey-btn.conflict { border-color: var(--danger-border); color: var(--danger); }
-@keyframes hk-pulse { from { opacity:1 } to { opacity:.45 } }
-
-.hk-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding-top: 14px; gap: 10px;
-}
-.hk-hint { flex: 1; font-size: 11px; color: var(--text-s); line-height: 1.65; }
-
-.key-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.key-chip {
-  font-family: var(--mono); font-size: 11px; padding: 3px 8px;
-  background: rgba(255,255,255,0.06); border: 1px solid var(--border);
-  border-radius: var(--r-xs); color: var(--text-m);
-}
-</style>
 </head>
 <body>
 <header class="tool-topbar">
@@ -146,7 +97,6 @@
     </div>
   </div>
 
-
   <!-- Twitch App-Konfiguration -->
   <div>
     <div class="section-hd">
@@ -188,114 +138,6 @@
 
 </main>
 
-
-<script>
-'use strict';
-let hotkeys = { startSplit:'Numpad1', pause:'Numpad2', reset:'Numpad3', undo:'Numpad4', skip:'Numpad5' };
-let captureTarget = null;
-
-async function boot() {
-  try {
-    const s = await safeJson('/api/settings');
-    if (s && s.hotkeys) hotkeys = Object.assign({}, hotkeys, s.hotkeys);
-    applyForm();
-  } catch(_) {}
-  try {
-    const cfg = await safeJson('/api/oauth-clients');
-    const el = document.getElementById('twitch-client-id');
-    if (el && cfg?.twitch?.clientId) el.value = cfg.twitch.clientId;
-  } catch(_) {}
-}
-
-async function saveClientId() {
-  const clientId = document.getElementById('twitch-client-id').value.trim();
-  if (!clientId) { toast('Bitte eine Client ID eingeben', 'error'); return; }
-  try {
-    await safeJson('/api/oauth-clients', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider: 'twitch', clientId }),
-    });
-    toast('Client ID gespeichert', 'ok');
-  } catch(_) { toast('Fehler beim Speichern', 'error'); }
-}
-
-function applyForm() {
-  for (const [k, v] of Object.entries(hotkeys)) {
-    const btn = document.getElementById('hk-' + k);
-    if (btn) btn.textContent = v || '—';
-  }
-  checkConflicts();
-}
-
-function captureHotkey(key, btn) {
-  if (captureTarget) {
-    captureTarget.classList.remove('capture');
-    captureTarget.textContent = hotkeys[captureTarget.id.replace('hk-', '')] || '—';
-  }
-  captureTarget = btn;
-  btn.classList.add('capture');
-  btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="4"/></svg> ${t('settings.hotkeys.capture')}`;
-}
-
-document.addEventListener('keydown', function(e) {
-  if (!captureTarget) return;
-  e.preventDefault();
-  if (e.key === 'Escape') {
-    captureTarget.classList.remove('capture');
-    captureTarget.textContent = hotkeys[captureTarget.id.replace('hk-', '')] || '—';
-    captureTarget = null;
-    return;
-  }
-  const mapped = mapKey(e);
-  if (!mapped) return;
-  const key = captureTarget.id.replace('hk-', '');
-  hotkeys[key] = mapped;
-  captureTarget.classList.remove('capture');
-  captureTarget.textContent = mapped;
-  captureTarget = null;
-  checkConflicts();
-});
-
-function mapKey(e) {
-  if (e.code.startsWith('Numpad')) return e.code;
-  if (/^F\d+$/.test(e.code)) return e.code;
-  if (['Space','Insert','Delete','Home','End'].includes(e.code)) return e.code;
-  return null;
-}
-
-function checkConflicts() {
-  const vals = Object.values(hotkeys).filter(Boolean);
-  const dupes = vals.filter((v, i) => vals.indexOf(v) !== i);
-  for (const [k, v] of Object.entries(hotkeys)) {
-    const btn = document.getElementById('hk-' + k);
-    if (btn) btn.classList.toggle('conflict', dupes.includes(v));
-  }
-  return dupes.length === 0;
-}
-
-function resetHotkeys() {
-  hotkeys = { startSplit:'Numpad1', pause:'Numpad2', reset:'Numpad3', undo:'Numpad4', skip:'Numpad5' };
-  applyForm();
-}
-
-async function saveHotkeys() {
-  if (!checkConflicts()) { toast(t('settings.hotkeys.conflict'), 'error'); return; }
-  try {
-    await safeJson('/api/settings', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hotkeys }),
-    });
-    toast(t('settings.hotkeys.saved'), 'ok');
-  } catch(_) { toast(t('settings.hotkeys.save_error'), 'error'); }
-}
-
-boot();
-
-document.querySelector('details')?.addEventListener('toggle', function() {
-  const arrow = document.getElementById('adv-arrow');
-  if (arrow) arrow.style.transform = this.open ? 'rotate(180deg)' : '';
-});
-</script>
+<script src="/tool/settings/settings.js"></script>
 </body>
 </html>
