@@ -1,0 +1,116 @@
+{
+  "obs": {
+    "enabled": false,
+    "address": "ws://localhost:4455",
+    "password": "",
+    "autoConnect": true
+  },
+  "timerAutomation": {
+    "enabled": false,
+    "onStartScene": "",
+    "onFinishScene": "",
+    "onResetScene": "",
+    "onPauseScene": "",
+    "onResumeScene": "",
+    "splitScenes": {}
+  },
+  "macros": [
+    {
+      "id": "go-live",
+      "name": "Go Live Scene",
+      "actions": [
+        {
+          "type": "scene",
+          "sceneName": ""
+        }
+      ]
+    },
+    {
+      "id": "be-right-back",
+      "name": "BRB Scene",
+      "actions": [
+        {
+          "type": "scene",
+          "sceneName": ""
+        }
+      ]
+    }
+  ],
+  "midi": {
+    "enabled": true,
+    "inputName": "X-TOUCH MINI",
+    "bindings": [
+      {
+        "id": "ae6a0853-66e8-45ec-81f7-31a8a5f87e99",
+        "type": "cc",
+        "channel": 10,
+        "number": 1,
+        "category": "scene-switching",
+        "action": "switch-scene",
+        "valueMode": "threshold",
+        "threshold": 1,
+        "rangeMin": 0,
+        "rangeMax": 100,
+        "synced": false,
+        "disabled": false,
+        "sceneName": "-> Anfang"
+      },
+      {
+        "id": "ab1705f8-c903-4876-9e8a-3c499ad66330",
+        "type": "cc",
+        "channel": 10,
+        "number": 2,
+        "category": "scene-switching",
+        "action": "switch-scene",
+        "valueMode": "threshold",
+        "threshold": 1,
+        "rangeMin": 0,
+        "rangeMax": 100,
+        "synced": false,
+        "disabled": false,
+        "sceneName": "-> Spiel"
+      },
+      {
+        "id": "1826fe3e-0db1-4700-b3cf-2e7f142caf3b",
+        "type": "cc",
+        "channel": 10,
+        "number": 3,
+        "category": "scene-switching",
+        "action": "switch-scene",
+        "valueMode": "threshold",
+        "threshold": 1,
+        "rangeMin": 0,
+        "rangeMax": 100,
+        "synced": false,
+        "disabled": false,
+        "sceneName": "-> React"
+      },
+      {
+        "id": "a2871711-4755-41c1-b196-5b005d15e471",
+        "type": "cc",
+        "channel": 10,
+        "number": 26,
+        "category": "audio-switching",
+        "action": "change-source-volume",
+        "valueMode": "custom-range",
+        "threshold": 1,
+        "rangeMin": 0,
+        "rangeMax": 100,
+        "synced": true,
+        "disabled": false,
+        "inputName": "Mikro-Beyerdynamic"
+      }
+    ]
+  },
+  "hiddenScenes": [
+    "###Musik-Laut",
+    "###Musik-Leise",
+    "___________Musik____________",
+    "________Sonderszenen________",
+    "__________Pokemon__________",
+    "_______Reden / Pause________",
+    "____________React____________",
+    "___________Gaming___________",
+    "________Anfang / Ende________"
+  ]
+}

@@ -1,0 +1,416 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>EventForge Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Roboto:wght@400;700&family=Montserrat:wght@400;700;800&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Nunito:wght@400;700;800&family=Poppins:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:transparent;overflow:hidden;font-family:'Archivo',system-ui,sans-serif}
+.stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:3vh 4vw;pointer-events:none}
+#card{
+  display:flex;flex-direction:row;align-items:center;gap:18px;
+  padding:18px 22px;border-radius:16px;
+  max-width:860px;width:max-content;
+  visibility:hidden;
+}
+#alert-image{flex-shrink:0;width:110px;height:110px;border-radius:12px;overflow:hidden;display:none}
+#alert-image.top{width:220px;height:auto;max-height:200px}
+#alert-image img,#alert-image video{width:100%;height:100%;object-fit:contain;display:block}
+#alert-image.top img,#alert-image.top video{height:auto;max-height:200px}
+#alert-text{flex:1;display:flex;flex-direction:column;gap:6px;transition:opacity 0.3s ease}
+#message-el{font-size:42px;font-weight:700;line-height:1.1;word-break:break-word;text-shadow:0 2px 10px rgba(0,0,0,.35)}
+
+/* ── keyframe animations ── */
+@keyframes bounceInRight{0%{opacity:0;transform:translateX(500px)}60%{opacity:1;transform:translateX(-20px)}80%{transform:translateX(8px)}100%{opacity:1;transform:translateX(0)}}
+@keyframes bounceInLeft{0%{opacity:0;transform:translateX(-500px)}60%{opacity:1;transform:translateX(20px)}80%{transform:translateX(-8px)}100%{opacity:1;transform:translateX(0)}}
+@keyframes bounceInDown{0%{opacity:0;transform:translateY(-340px)}60%{opacity:1;transform:translateY(16px)}80%{transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes bounceInUp{0%{opacity:0;transform:translateY(340px)}60%{opacity:1;transform:translateY(-16px)}80%{transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeInRight{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeInLeft{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes zoomIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@keyframes slideInRight{from{transform:translateX(110%)}to{transform:translateX(0)}}
+@keyframes slideInLeft{from{transform:translateX(-110%)}to{transform:translateX(0)}}
+@keyframes slideInDown{from{transform:translateY(-110%)}to{transform:translateY(0)}}
+@keyframes flipInX{0%{opacity:0;transform:perspective(400px) rotateX(90deg)}40%{transform:perspective(400px) rotateX(-20deg)}60%{transform:perspective(400px) rotateX(10deg)}80%{transform:perspective(400px) rotateX(-5deg)}100%{opacity:1;transform:perspective(400px) rotateX(0)}}
+
+@keyframes bounceOutRight{20%{opacity:1;transform:translateX(-15px)}100%{opacity:0;transform:translateX(500px)}}
+@keyframes bounceOutLeft{20%{opacity:1;transform:translateX(15px)}100%{opacity:0;transform:translateX(-500px)}}
+@keyframes bounceOutDown{20%{opacity:1;transform:translateY(-12px)}100%{opacity:0;transform:translateY(340px)}}
+@keyframes bounceOutUp{20%{opacity:1;transform:translateY(12px)}100%{opacity:0;transform:translateY(-340px)}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+@keyframes fadeOutRight{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(50px)}}
+@keyframes fadeOutLeft{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-50px)}}
+@keyframes zoomOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.4)}}
+@keyframes slideOutRight{from{transform:translateX(0)}to{transform:translateX(110%)}}
+@keyframes slideOutUp{from{transform:translateY(0)}to{transform:translateY(-110%)}}
+@keyframes flipOutX{from{opacity:1;transform:perspective(400px) rotateX(0)}to{opacity:0;transform:perspective(400px) rotateX(90deg)}}
+</style>
+<style id="ev-custom-css"></style>
+<script src="/shared/utils.js"></script>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div id="card">
+    <div id="alert-image">
+      <img id="img-el" alt="">
+      <video id="vid-el" autoplay muted loop playsinline></video>
+    </div>
+    <div id="alert-text">
+      <div id="message-el"></div>
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+let cfg          = { global: {}, events: {} };
+let queue        = [];
+let running      = false;
+let outTimer     = null;
+let endTimer     = null;
+let textDelayTimer = null;
+let currentAudio = null;
+
+const card        = document.getElementById('card');
+const stage       = document.getElementById('stage');
+const imgArea     = document.getElementById('alert-image');
+const imgEl       = document.getElementById('img-el');
+const vidEl       = document.getElementById('vid-el');
+const msgEl       = document.getElementById('message-el');
+const textArea    = document.getElementById('alert-text');
+const customCssEl = document.getElementById('ev-custom-css');
+
+const POS_MAP = {
+  'tl':{jc:'flex-start',ai:'flex-start'}, 'tc':{jc:'center',ai:'flex-start'}, 'tr':{jc:'flex-end',ai:'flex-start'},
+  'ml':{jc:'flex-start',ai:'center'},     'mc':{jc:'center', ai:'center'},     'mr':{jc:'flex-end',ai:'center'},
+  'bl':{jc:'flex-start',ai:'flex-end'},   'bc':{jc:'center', ai:'flex-end'},   'br':{jc:'flex-end',ai:'flex-end'},
+};
+
+
+function applyTemplate(tpl, a) {
+  return String(tpl||'')
+    .replace(/{name}/g, String(a.author||''))
+    .replace(/{author}/g, String(a.author||''))
+    .replace(/{text}/g, String(a.text||''))
+    .replace(/{amount}/g, String(a.amount||''))
+    .replace(/{viewers}/g, String(a.viewers||''));
+}
+
+function renderMessageHtml(tpl, a, hiColor) {
+  const tokens = String(tpl||'').split(/({name}|{author}|{text}|{amount}|{viewers})/);
+  return tokens.map(tok => {
+    if (tok==='{name}'||tok==='{author}') {
+      const v = esc(String(a.author||''));
+      return hiColor ? '<span style="color:'+esc(hiColor)+';font-weight:inherit">'+v+'</span>' : v;
+    }
+    if (tok==='{text}')    return esc(String(a.text||''));
+    if (tok==='{amount}')  return esc(String(a.amount||''));
+    if (tok==='{viewers}') return esc(String(a.viewers||''));
+    return esc(tok);
+  }).join('');
+}
+
+function inferMediaType(url) {
+  const raw = String(url||'').toLowerCase();
+  if (raw.startsWith('data:video/')) return 'video';
+  if (raw.startsWith('data:image/')) return 'image';
+  const u = raw.split('?')[0];
+  if (/(\.mp4|\.webm|\.mov|\.m4v|\.ogv)$/.test(u)) return 'video';
+  return 'image';
+}
+
+function normalizeMediaUrl(url) {
+  let s = String(url || '').trim();
+  if (!s) return '';
+  // Backward-compat: old normalized URLs encoded drive letter as C%3A.
+  s = s.replace(/^file:\/\/\/([a-zA-Z])%3A\//i, (_, d) => 'file:///' + d + ':/');
+  if (/^[a-zA-Z]:\\/.test(s)) {
+    const drive = s.slice(0, 2);
+    const rest = s.slice(2).replace(/\\/g, '/').split('/').filter(Boolean).map(encodeURIComponent).join('/');
+    return 'file:///' + drive + '/' + rest;
+  }
+  return s;
+}
+
+function resolveMediaUrl(url) {
+  const s = normalizeMediaUrl(url);
+  if (!s) return '';
+  // Convert app-local media paths to absolute URL for consistent loading in iframe/OBS contexts.
+  if (s.startsWith('/')) {
+    try { return new URL(s, location.origin).href; } catch (_) { return s; }
+  }
+  return s;
+}
+
+function setImage(url, layout, size) {
+  const src = resolveMediaUrl(url);
+  imgEl.style.display = 'none';
+  vidEl.style.display = 'none';
+  vidEl.pause();
+  imgEl.removeAttribute('src');
+  vidEl.removeAttribute('src');
+  if (!src) { imgArea.style.display='none'; return; }
+  imgArea.style.display = 'block';
+  const sz = parseInt(size||0, 10);
+  if (layout==='image-top'||layout==='text-top') {
+    imgArea.classList.add('top');
+    imgArea.style.width  = sz>0 ? sz+'px' : '';
+    imgArea.style.height = 'auto';
+  } else {
+    imgArea.classList.remove('top');
+    imgArea.style.width  = sz>0 ? sz+'px' : '';
+    imgArea.style.height = sz>0 ? sz+'px' : '';
+  }
+  const mt = inferMediaType(src);
+  if (mt==='video') {
+    vidEl.style.display = 'block';
+    vidEl.onerror = function() {
+      // fallback for relative URL handling edge-cases
+      if (String(url || '').startsWith('/')) {
+        try { vidEl.src = location.origin + String(url || ''); } catch (_) {}
+      }
+    };
+    vidEl.src = src;
+    vidEl.play().catch(() => {});
+  } else {
+    imgEl.style.display = 'block';
+    imgEl.onerror = function() {
+      // Fallback 1: unusual file URL encoding from older config states.
+      if (/^file:\/\/\/([a-zA-Z])%3A\//i.test(src)) {
+        imgEl.src = src.replace(/^file:\/\/\/([a-zA-Z])%3A\//i, (_, d) => 'file:///' + d + ':/');
+        return;
+      }
+      // Fallback 2: relative local media path forced to absolute host path.
+      if (String(url || '').startsWith('/')) {
+        try { imgEl.src = location.origin + String(url || ''); } catch (_) {}
+      }
+    };
+    imgEl.src = src;
+  }
+}
+
+function playSound(ec) {
+  if (currentAudio) { try { currentAudio.pause(); } catch {} currentAudio = null; }
+  if (!ec||!ec.soundUrl) return;
+  const audio = new Audio(String(ec.soundUrl));
+  audio.volume = Math.max(0, Math.min(1, (parseInt(ec.soundVolume,10)||80)/100));
+  audio.play().catch(() => {});
+  currentAudio = audio;
+}
+
+function fadeOutSound(durationMs) {
+  if (!currentAudio) return;
+  const audio    = currentAudio;
+  currentAudio   = null;
+  const startVol = audio.volume;
+  const steps    = 20;
+  const stepTime = durationMs / steps;
+  let   step     = 0;
+  const iv = setInterval(() => {
+    step++;
+    audio.volume = Math.max(0, startVol * (1 - step / steps));
+    if (step >= steps) { clearInterval(iv); try { audio.pause(); } catch {} }
+  }, stepTime);
+}
+
+function mapKwToType(kw, plat) {
+  const k = String(kw||'').toLowerCase();
+  if (k.includes('follow'))   return 'follower';
+  if (k.includes('sub'))      return 'sub';
+  if (k.includes('raid'))     return 'raid';
+  if (k.includes('bit'))      return 'bits';
+  if (k.includes('superchat'))return 'superchat';
+  if (k.includes('member'))   return 'membership';
+  if (k.includes('dono')||k.includes('donation')) return 'donation';
+  return plat==='youtube' ? 'superchat' : 'follower';
+}
+
+function resolveKey(a) {
+  const rt = String(a.eventType||'').toLowerCase();
+  const rk = String(a.keyword||'').toLowerCase();
+  if (rt.startsWith('event:')) return rt.slice(6);
+  if (rt&&rt!=='text') return rt;
+  if (rk.startsWith('event:')) return rk.slice(6);
+  if (rk.startsWith('kw:')) return mapKwToType(rk.slice(3), String(a.platform||'').toLowerCase());
+  return mapKwToType(rk, String(a.platform||'').toLowerCase());
+}
+
+const FB_BASE = {animIn:'bounceInRight',animOut:'bounceOutRight',duration:8,textDelay:0,bgColor:'rgba(0,0,0,0)',fontFamily:'Archivo',fontSize:42,fontWeight:700,textColor:'#fff',highlightColor:'#14d3aa',layout:'image-left',imageUrl:'',soundUrl:'',soundVolume:80,imageSize:0,position:'mc',customCss:''};
+const FALLBACK = {
+  follower:    Object.assign({},FB_BASE,{message:'{name} folgt!'}),
+  sub:         Object.assign({},FB_BASE,{message:'{name} abonniert!'}),
+  resub:       Object.assign({},FB_BASE,{message:'{name} hat {text}'}),
+  subgift:     Object.assign({},FB_BASE,{message:'{name} schenkt einen Sub!'}),
+  raid:        Object.assign({},FB_BASE,{message:'{name} raided!'}),
+  bits:        Object.assign({},FB_BASE,{message:'{name} cheered {amount}!'}),
+  superchat:   Object.assign({},FB_BASE,{message:'{name}: {text}'}),
+  supersticker:Object.assign({},FB_BASE,{message:'{name} stickered!'}),
+  membership:  Object.assign({},FB_BASE,{message:'{name} Mitglied!'}),
+  donation:    Object.assign({},FB_BASE,{message:'{name}: {amount}!'}),
+  test:        Object.assign({},FB_BASE,{message:'{text}'}),
+};
+
+function mergeEc(key, override) {
+  let base = FALLBACK[key] || FALLBACK.follower;
+  if (!FALLBACK[key] && cfg.customEvents) {
+    const ce = cfg.customEvents.find(c => c.id === key);
+    if (ce) base = Object.assign({}, FB_BASE, ce);
+  }
+  const g  = cfg.global || {};
+  const ev = (cfg.events && cfg.events[key]) || {};
+  return Object.assign({}, base, g, ev, override || {});
+}
+
+function renderAlert(a) {
+  const key = resolveKey(a);
+  const ec  = mergeEc(key, (a && a.eventConfig && typeof a.eventConfig === 'object') ? a.eventConfig : null);
+  if (ec.enabled === false) return null;
+
+  const layout  = ec.layout || 'image-left';
+  const animIn  = ec.animIn  || 'bounceInRight';
+  const animOut = ec.animOut || 'bounceOutRight';
+  const dur     = Math.max(2, parseInt(ec.duration||8, 10));
+  const delay   = Math.max(0, parseInt(ec.textDelay||0, 10));
+  const bg      = ec.bgColor || 'rgba(0,0,0,0)';
+  const ff      = ec.fontFamily || 'Archivo';
+  const fs      = parseInt(ec.fontSize||42, 10);
+  const fw      = parseInt(ec.fontWeight||700, 10);
+  const tc      = ec.textColor || '#ffffff';
+  const hi      = ec.highlightColor || '#14d3aa';
+  const sz      = parseInt(ec.imageSize||0, 10);
+  const pos     = ec.position || 'mc';
+
+  customCssEl.textContent = ec.customCss || '';
+
+  const pm = POS_MAP[pos] || POS_MAP['mc'];
+  stage.style.justifyContent = pm.jc;
+  stage.style.alignItems     = pm.ai;
+
+  card.style.background   = bg;
+  card.style.borderRadius = '16px';
+
+  if (layout==='image-left') {
+    card.style.flexDirection = 'row';
+    card.style.alignItems    = 'center';
+  } else if (layout==='image-top') {
+    card.style.flexDirection = 'column';
+    card.style.alignItems    = 'flex-start';
+  } else {
+    card.style.flexDirection = 'column-reverse';
+    card.style.alignItems    = 'flex-start';
+  }
+
+  setImage(ec.imageUrl||'', layout, sz);
+
+  textArea.style.fontFamily = "'" + ff + "', system-ui, sans-serif";
+  msgEl.style.fontSize      = fs + 'px';
+  msgEl.style.fontWeight    = fw;
+  msgEl.style.color         = tc;
+  msgEl.innerHTML           = renderMessageHtml(ec.message||'{author}', a, hi);
+
+  if (delay > 0) {
+    textArea.style.opacity = '0';
+    if (textDelayTimer) clearTimeout(textDelayTimer);
+    textDelayTimer = setTimeout(() => { textArea.style.opacity='1'; }, delay*1000);
+  } else {
+    if (textDelayTimer) { clearTimeout(textDelayTimer); textDelayTimer = null; }
+    textArea.style.opacity = '1';
+  }
+
+  playSound(ec);
+  return { animIn, animOut, dur };
+}
+
+function clearAlertTimers() {
+  if (outTimer) { clearTimeout(outTimer); outTimer = null; }
+  if (endTimer) { clearTimeout(endTimer); endTimer = null; }
+  if (textDelayTimer) { clearTimeout(textDelayTimer); textDelayTimer = null; }
+}
+
+function resetCardAnimationState() {
+  clearAlertTimers();
+  card.style.animation = 'none';
+  card.style.transform = 'none';
+  card.style.opacity = '1';
+  card.offsetHeight;
+}
+
+function showNext() {
+  if (running || !queue.length) return;
+  running = true;
+  const a   = queue.shift();
+  resetCardAnimationState();
+  const res = renderAlert(a);
+  if (!res) { running=false; showNext(); return; }
+
+  card.style.visibility = 'visible';
+  card.style.animation = res.animIn + ' 0.55s ease forwards';
+
+  const outStart = Math.max(600, res.dur * 1000 - 480);
+  outTimer = setTimeout(() => {
+    fadeOutSound(420);
+    card.style.animation = 'none';
+    card.offsetHeight;
+    card.style.animation = res.animOut + ' 0.42s ease forwards';
+  }, outStart);
+
+  endTimer = setTimeout(() => {
+    clearAlertTimers();
+    card.style.visibility = 'hidden';
+    card.style.animation = 'none';
+    card.style.transform = 'none';
+    card.style.opacity = '1';
+    running = false;
+    showNext();
+  }, res.dur * 1000);
+}
+
+async function loadCfg() {
+  try { cfg = await safeJson('/api/alertdeck/config'); } catch {}
+}
+
+async function poll() {
+  try {
+    const d    = await safeJson('/api/alertdeck/poll');
+    const list = Array.isArray(d.alerts) ? d.alerts : [];
+    if (list.length) {
+      await loadCfg();
+      queue = queue.concat(list);
+      showNext();
+    }
+  } catch {}
+}
+
+// local preview via postMessage
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'alertdeck-preview') return;
+  loadCfg().finally(function() {
+    clearAlertTimers();
+    if (currentAudio) { try { currentAudio.pause(); } catch(_){} currentAudio = null; }
+    queue = [e.data];
+    running = false;
+    card.style.animation   = 'none';
+    card.style.visibility  = 'hidden';
+    card.style.transform   = 'none';
+    card.style.opacity     = '1';
+    showNext();
+  });
+});
+
+(async function init() {
+  await loadCfg();
+  setInterval(function(){ loadCfg().catch(function(){}); }, 1500);
+  // Skip polling when loaded as the in-app preview iframe (?preview=1).
+  // The preview receives alerts exclusively via postMessage so it doesn't
+  // compete with the real OBS browser source for the shared alert queue.
+  if (!new URLSearchParams(location.search).get('preview')) {
+    setInterval(function(){ poll().catch(function(){}); }, 350);
+  }
+})();
+</script>
+</body>
+</html>

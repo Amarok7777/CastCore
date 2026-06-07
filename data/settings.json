@@ -1,0 +1,46 @@
+{
+  "onboardingComplete": true,
+  "hotkeys": {
+    "startSplit": "Numpad1",
+    "pause": "Numpad2",
+    "reset": "Numpad3",
+    "undo": "Numpad4",
+    "skip": "Numpad5"
+  },
+  "overlay": {
+    "theme": "midnight",
+    "opacity": 1,
+    "uiScale": 1.15,
+    "width": 320,
+    "timerFontSize": 44,
+    "timerPosition": "bottom",
+    "showSplits": true,
+    "showComparison": "pb",
+    "showGoldSplits": true,
+    "showAttempts": true,
+    "showSobRow": true,
+    "simpleTimerMode": false,
+    "maxVisibleSplits": 8,
+    "customCSS": "",
+    "colors": {
+      "background": "rgb(4,8,20)",
+      "timerText": "#ffffff",
+      "splitText": "#e8e8e8",
+      "mutedText": "#888888",
+      "ahead": "#4fc97a",
+      "behind": "#e05555",
+      "gold": "#f0c040",
+      "accent": "#7c6ef0"
+    },
+    "height": 387,
+    "transparentBackground": false
+  },
+  "obs": {
+    "enabled": false,
+    "address": "ws://localhost:4455",
+    "password": "",
+    "autoStart": false,
+    "autoReset": false
+  },
+  "activeProfileId": null
+}

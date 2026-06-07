@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SplitFlow Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/shared/utils.js"></script>
+<style id="custom-css-tag"></style>
+<style>
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── CSS variables (overridden by themes / settings) ────────────────────── */
+:root {
+  --bg:         #0e0e14;
+  --bg2:        rgba(255,255,255,0.04);
+  --tf:         #e8e8f0;
+  --ts:         rgba(255,255,255,0.40);
+  --tm:         rgba(255,255,255,0.60);
+  --ahead:      #3ecb80;
+  --behind:     #e04848;
+  --gold:       #f5c240;
+  --acc:        #8070e8;
+  --line:       rgba(255,255,255,0.07);
+  --line2:      rgba(255,255,255,0.12);
+  --timer-size: 36px;
+  --width:      280px;
+  --font-ui:    system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --radius:     6px;
+  --base-opacity: 1;
+  --ui-scale:   1;
+}
+
+html, body {
+  margin: 0; padding: 0;
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-ui);
+  overflow: hidden;
+}
+
+/* ── Outer overlay wrapper ──────────────────────────────────────────────── */
+#overlay-stage {
+  display: inline-block;
+  zoom: var(--ui-scale);
+}
+
+#overlay {
+  width: var(--width);
+  background: var(--bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: opacity 0.4s;
+  border: 1px solid var(--line);
+}
+
+/* Transparenter Hintergrund — nur Schrift bleibt sichtbar */
+#overlay.transparent-bg,
+#overlay.transparent-bg * {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+#overlay.transparent-bg { border-radius: 0; }
+
+/* Simple Timer Mode: only the core timer remains visible */
+#overlay.simple-mode #header,
+#overlay.simple-mode #splits-list,
+#overlay.simple-mode #splits-divider,
+#overlay.simple-mode #footer,
+#overlay.simple-mode .timer-delta-row {
+  display: none !important;
+}
+#overlay.simple-mode #timer-top,
+#overlay.simple-mode #timer-section {
+  border: none;
+}
+#overlay.simple-mode .timer-inner {
+  justify-content: center;
+  padding: 14px 12px;
+}
+#overlay.simple-mode #main-timer,
+#overlay.simple-mode #timer-top-display {
+  font-size: calc(var(--timer-size) * 1.2);
+}
+
+/* Overlay opacity — controlled solely by the Transparenz slider */
+body.state-idle #overlay,
+body.state-running #overlay,
+body.state-paused  #overlay,
+body.state-finished #overlay { opacity: var(--base-opacity); }
+
+/* State: paused — pulse on timer */
+body.state-paused #main-timer,
+body.state-paused #timer-top-display { animation: paused-pulse 1.8s ease-in-out infinite; }
+@keyframes paused-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* State: finished — flash once */
+body.state-finished #overlay { animation: finish-flash 0.5s ease 2; }
+@keyframes finish-flash {
+  0%  { background: var(--bg); }
+  40% { background: rgba(109,91,208,0.30); }
+  100%{ background: var(--bg); }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+#header {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--line);
+}
+#game-name {
+  font-size: 13px; font-weight: 600; color: var(--tf);
+  line-height: 1.3; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#category-name {
+  font-size: 11px; color: var(--ts); margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#attempts-line {
+  font-size: 10px; color: var(--ts); margin-top: 3px;
+  font-family: var(--font-mono); letter-spacing: 0.03em;
+}
+
+/* ── Timer section (position = top or bottom) ───────────────────────────── */
+#timer-top, #timer-section {
+  display: flex; flex-direction: column; padding: 0;
+}
+#timer-top    { border-bottom: 1px solid var(--line); }
+#timer-section{ border-top: 1px solid var(--line); }
+
+.timer-inner {
+  display: flex; align-items: flex-end; justify-content: flex-end;
+  padding: 8px 12px 2px;
+  gap: 0;
+}
+#main-timer, #timer-top-display {
+  font-family: var(--font-mono);
+  font-size: var(--timer-size);
+  font-weight: 400;
+  color: var(--tf);
+  letter-spacing: -0.04em;
+  line-height: 0.96;
+  transition: color 0.25s;
+  display: inline-flex;
+  align-items: flex-end;
+}
+.ms-part {
+  font-size: 50%;
+  opacity: 0.48;
+  letter-spacing: -0.02em;
+  margin-bottom: 1px;
+}
+
+/* Current delta under timer */
+.timer-delta-row {
+  display: flex; justify-content: flex-end;
+  padding: 0 12px 8px;
+  min-height: 19px;
+}
+.live-delta {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--ts); letter-spacing: 0.01em;
+  transition: color 0.2s;
+  line-height: 1;
+}
+.live-delta.ahead  { color: var(--ahead); }
+.live-delta.behind { color: var(--behind); }
+.live-delta.gold   { color: var(--gold); }
+
+/* ── Splits list ────────────────────────────────────────────────────────── */
+#splits-list { overflow: hidden; }
+
+.split-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  min-height: 26px;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.15s;
+  position: relative; /* needed for ::before accent bar */
+}
+.split-row:last-child { border-bottom: none; }
+
+.split-name {
+  font-size: 12px; color: var(--tm);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+.split-time {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--ts); white-space: nowrap;
+  transition: color 0.15s;
+}
+.split-delta {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--ts); white-space: nowrap; min-width: 52px; text-align: right;
+  transition: color 0.2s;
+}
+
+/* Current split highlight */
+.split-row.current {
+  background: var(--bg2);
+}
+.split-row.current .split-name { color: var(--tf); font-weight: 500; }
+/* Current split left accent */
+.split-row.current::before {
+  content: '';
+  display: block;
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--acc);
+  border-radius: 0 1px 1px 0;
+}
+#splits-list { position: relative; }
+
+/* Done splits */
+.split-row.done   .split-name { color: var(--ts); }
+.split-row.done   .split-time { color: var(--tm); }
+.split-row.skipped .split-name { color: var(--ts); text-decoration: line-through; opacity: 0.5; }
+
+/* Delta colors */
+.split-delta.ahead  { color: var(--ahead); }
+.split-delta.behind { color: var(--behind); }
+.split-delta.gold   { color: var(--gold); }
+.split-time.gold    { color: var(--gold); }
+
+/* Gold marker on split name */
+.gold-marker {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--gold);
+  margin-left: 5px; margin-bottom: 1px; vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* ── Divider ────────────────────────────────────────────────────────────── */
+.splits-divider { height: 1px; background: var(--line2); }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+#footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 5px 12px 6px;
+  border-top: 1px solid var(--line);
+  gap: 4px;
+}
+.footer-item {
+  display: flex; flex-direction: column;
+}
+.footer-item:last-child { align-items: flex-end; }
+.footer-item:nth-child(2) { align-items: center; }
+.footer-label { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ts); margin-bottom: 1px; }
+.footer-val   { font-family: var(--font-mono); font-size: 12px; color: var(--tm); letter-spacing: -0.01em; }
+#pb-val        { color: var(--tm); }
+#sob-val       { color: var(--tm); }
+
+/* Separator dot in center */
+.footer-sep {
+  width: 3px; height: 3px; border-radius: 50%; background: var(--line2);
+}
+
+/* ── Theme: dark (default) ──────────────────────────────────────────────── */
+body[data-theme="dark"] {
+  --bg: #0e0e14;
+  --tf: #e8e8f0; --ts: rgba(255,255,255,0.38); --tm: rgba(255,255,255,0.58);
+  --ahead: #3ecb80; --behind: #e04848; --gold: #f5c240; --acc: #8070e8;
+}
+
+/* ── Theme: midnight ────────────────────────────────────────────────────── */
+body[data-theme="midnight"] {
+  --bg: #08061c;
+  --tf: #d0ccf8; --ts: rgba(150,140,220,0.45); --tm: rgba(200,196,248,0.65);
+  --ahead: #74c6f5; --behind: #f07070; --gold: #ffd060; --acc: #9d7ef0;
+}
+
+/* ── Theme: clean ───────────────────────────────────────────────────────── */
+body[data-theme="clean"] {
+  --bg: #f8f8fa;
+  --bg2: rgba(0,0,0,0.04);
+  --line: rgba(0,0,0,0.08); --line2: rgba(0,0,0,0.12);
+  --tf: #111118; --ts: rgba(0,0,0,0.38); --tm: rgba(0,0,0,0.62);
+  --ahead: #1a8f52; --behind: #c02828; --gold: #a07000; --acc: #5040c0;
+}
+
+/* ── Theme: neon ────────────────────────────────────────────────────────── */
+body[data-theme="neon"] {
+  --bg: #040814;
+  --bg2: rgba(0,255,200,0.04);
+  --line: rgba(0,255,200,0.08); --line2: rgba(0,255,200,0.14);
+  --tf: #00ffcc; --ts: rgba(0,200,150,0.45); --tm: rgba(0,220,160,0.75);
+  --ahead: #00ff88; --behind: #ff3366; --gold: #ffcc00; --acc: #7755ff;
+}
+</style>
+</head>
+<body>
+
+<div id="overlay-stage">
+<div id="overlay">
+
+  <!-- Timer top (shown when timerPosition = 'top') -->
+  <div id="timer-top" style="display:none">
+    <div class="timer-inner">
+      <span id="timer-top-display">0:00:00<span class="ms-part">.000</span></span>
+    </div>
+    <div class="timer-delta-row"><span id="live-delta-top" class="live-delta"></span></div>
+  </div>
+
+  <!-- Header -->
+  <div id="header">
+    <div id="game-name">Kein Profil geladen</div>
+    <div id="category-name"></div>
+    <div id="attempts-line" style="display:none"></div>
+  </div>
+
+  <!-- Splits -->
+  <div id="splits-list"></div>
+
+  <!-- Divider above timer -->
+  <div class="splits-divider" id="splits-divider"></div>
+
+  <!-- Timer bottom (default) -->
+  <div id="timer-section">
+    <div class="timer-inner">
+      <span id="main-timer">0:00:00<span class="ms-part">.000</span></span>
+    </div>
+    <div class="timer-delta-row">
+      <span id="live-delta" class="live-delta"></span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer" style="display:none">
+    <div class="footer-item">
+      <span class="footer-label">SoB</span>
+      <span class="footer-val" id="sob-val">—</span>
+    </div>
+    <div class="footer-sep"></div>
+    <div class="footer-item">
+      <span class="footer-label">PB</span>
+      <span class="footer-val" id="pb-val">—</span>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════════════════════════
+
+let ws       = null;
+let snapshot = null;
+let rafId    = null;
+let cfg      = {};
+let serverEpoch = 0;
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Boot
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function boot() {
+  const settings = await safeJson('/api/settings').catch(() => ({}));
+  cfg = settings.overlay || {};
+  applySettings(cfg);
+  connectWS();
+  // Initial state
+  safeJson('/api/timer/state').then(s => {
+    snapshot = s; serverEpoch = Date.now();
+    render(s);
+    if (s.state === 'running') startRaf();
+  }).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Settings → CSS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function applySettings(ov) {
+  const root = document.documentElement;
+  const overlay = document.getElementById('overlay');
+
+  // Width / Height
+  if (ov.width)  root.style.setProperty('--width',  ov.width  + 'px');
+  if (ov.height) overlay.style.minHeight = ov.height + 'px';
+  else           overlay.style.minHeight = '';
+
+  // Transparent background mode
+  overlay?.classList.toggle('transparent-bg', !!ov.transparentBackground);
+
+  // Timer font size
+  if (ov.timerFontSize) root.style.setProperty('--timer-size', ov.timerFontSize + 'px');
+
+  // Overlay opacity (global multiplier)
+  root.style.setProperty('--base-opacity', String(ov.opacity ?? 1));
+
+  // Global UI scale for larger readability in high-res scenes
+  root.style.setProperty('--ui-scale', String(Math.max(0.8, Math.min(2.2, ov.uiScale ?? 1))));
+
+  // Theme
+  const theme = ov.theme || 'dark';
+  document.body.dataset.theme = theme;
+  document.body.dataset.comparison = ov.showComparison || 'pb';
+  overlay?.classList.toggle('simple-mode', !!ov.simpleTimerMode);
+
+  // Clear stale inline custom vars whenever we are not in custom mode.
+  ['--bg','--tf','--tm','--ts','--ahead','--behind','--gold','--acc','--bg2','--line','--line2']
+    .forEach(v => root.style.removeProperty(v));
+
+  // Custom colors (only for 'custom' theme)
+  if (theme === 'custom' && ov.colors) {
+    const c = ov.colors;
+    if (c.background) root.style.setProperty('--bg',     c.background);
+    if (c.timerText)  root.style.setProperty('--tf',     c.timerText);
+    if (c.splitText)  root.style.setProperty('--tm',     c.splitText);
+    if (c.mutedText)  root.style.setProperty('--ts',     c.mutedText);
+    if (c.ahead)      root.style.setProperty('--ahead',  c.ahead);
+    if (c.behind)     root.style.setProperty('--behind', c.behind);
+    if (c.gold)       root.style.setProperty('--gold',   c.gold);
+    if (c.accent)     root.style.setProperty('--acc',    c.accent);
+    root.style.setProperty('--bg2', 'rgba(255,255,255,0.05)');
+    root.style.setProperty('--line', 'rgba(255,255,255,0.09)');
+    root.style.setProperty('--line2', 'rgba(255,255,255,0.14)');
+  }
+
+  // Timer position
+  const timerTop = document.getElementById('timer-top');
+  const timerBot = document.getElementById('timer-section');
+  const divider = document.getElementById('splits-divider');
+  if (ov.timerPosition === 'top') {
+    timerTop.style.display = '';
+    timerBot.style.display = 'none';
+    if (divider) divider.style.display = 'none';
+  } else {
+    timerTop.style.display = 'none';
+    timerBot.style.display = '';
+    if (divider) divider.style.display = '';
+  }
+
+  // Custom CSS
+  document.getElementById('custom-css-tag').textContent = ov.customCSS || '';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  WebSocket
+// ═══════════════════════════════════════════════════════════════════════════
+
+function connectWS() {
+  const wsUrl = new URL(location.href);
+  wsUrl.protocol = 'ws:';
+  wsUrl.port = location.port || '7331';
+  wsUrl.pathname = '/';
+  ws = new WebSocket(wsUrl.toString());
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'SETTINGS_UPDATE') {
+      cfg = (msg.payload || {}).overlay || cfg;
+      applySettings(cfg);
+      if (snapshot) render(snapshot);
+    }
+    if (msg.type === 'SNAPSHOT' || msg.type === 'UPDATE') {
+      snapshot    = msg.payload;
+      serverEpoch = Date.now();
+      render(snapshot);
+      if (snapshot.state === 'running') startRaf();
+      else { stopRaf(); render(snapshot); }
+    }
+  };
+
+  ws.onclose = () => setTimeout(connectWS, 1500);
+  ws.onerror = () => ws.close();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  RAF timer loop
+// ═══════════════════════════════════════════════════════════════════════════
+
+function startRaf() {
+  if (rafId) return;
+  (function tick() {
+    if (snapshot?.state === 'running') {
+      const live = snapshot.elapsed + (Date.now() - serverEpoch) / 1000;
+      setTimerText(live);
+    }
+    rafId = requestAnimationFrame(tick);
+  })();
+}
+function stopRaf() { if (rafId) cancelAnimationFrame(rafId); rafId = null; }
+
+function setTimerText(secs) {
+  const h  = Math.floor(secs / 3600);
+  const m  = Math.floor((secs % 3600) / 60);
+  const s  = Math.floor(secs % 60);
+  const ms = Math.floor((secs % 1) * 1000);
+  const hms = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const html = `${hms}<span class="ms-part">.${String(ms).padStart(3,'0')}</span>`;
+  document.getElementById('main-timer').innerHTML       = html;
+  document.getElementById('timer-top-display').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Render
+// ═══════════════════════════════════════════════════════════════════════════
+
+function render(s) {
+  if (!s) return;
+  document.body.className = 'state-' + s.state;
+  renderHeader(s);
+  renderSplits(s);
+  renderTimer(s);
+  renderFooter(s);
+}
+
+function renderHeader(s) {
+  if (cfg.simpleTimerMode) return;
+  const p = s.profile;
+  document.getElementById('game-name').textContent = p ? p.game : 'Kein Profil geladen';
+  document.getElementById('category-name').textContent = p ? p.category : '';
+  const atLine = document.getElementById('attempts-line');
+  if (p && cfg.showAttempts !== false) {
+    atLine.style.display = '';
+    const fin = p.finished || 0;
+    const att = p.attempts || 0;
+    atLine.textContent = `${att} Versuche · ${fin} Fertig`;
+  } else {
+    atLine.style.display = 'none';
+  }
+}
+
+function renderSplits(s) {
+  const list = document.getElementById('splits-list');
+  if (cfg.simpleTimerMode) { list.innerHTML = ''; return; }
+  const segs = s.segments || [];
+  if (segs.length === 0) { list.innerHTML = ''; return; }
+
+  const comparisonMode = cfg.showComparison || 'pb';
+  const showComparison = comparisonMode !== 'none';
+
+  const maxVisible = cfg.maxVisibleSplits || 10;
+  const currentIdx = s.currentSplit ?? 0;
+
+  // Window: center current split
+  let startIdx = Math.max(0, currentIdx - Math.floor(maxVisible / 2));
+  const endIdx = Math.min(segs.length, startIdx + maxVisible);
+  startIdx = Math.max(0, endIdx - maxVisible);
+
+  list.innerHTML = '';
+  for (let i = startIdx; i < endIdx; i++) {
+    const seg = segs[i];
+    const row = document.createElement('div');
+    row.className = 'split-row';
+    row.style.gridTemplateColumns = showComparison ? '1fr auto auto' : '1fr auto';
+    if (i < currentIdx) row.classList.add('done');
+    else if (i === currentIdx && (s.state === 'running' || s.state === 'paused')) row.classList.add('current');
+    else if (seg.skipped) row.classList.add('skipped');
+
+    // Name
+    const nameEl = document.createElement('span');
+    nameEl.className = 'split-name';
+    nameEl.textContent = seg.name || `Split ${i + 1}`;
+    if (cfg.showGoldSplits !== false && seg.isGold) {
+      const dot = document.createElement('span');
+      dot.className = 'gold-marker';
+      dot.title = 'Gold Split';
+      nameEl.appendChild(dot);
+    }
+
+    // Time
+    const timeEl = document.createElement('span');
+    timeEl.className = 'split-time';
+    if (seg.isGold) timeEl.classList.add('gold');
+    timeEl.textContent = seg.splitTime != null ? fmtTime(seg.splitTime) : '';
+
+    // Delta
+    let deltaEl = null;
+    if (showComparison) {
+      deltaEl = document.createElement('span');
+      deltaEl.className = 'split-delta';
+
+      const segDelta = getSegmentDelta(seg, comparisonMode);
+      if (segDelta != null) {
+        const sign = segDelta < 0 ? '−' : '+';
+        deltaEl.textContent = sign + fmtDelta(Math.abs(segDelta));
+        if (seg.isGold) deltaEl.classList.add('gold');
+        else if (segDelta < 0) deltaEl.classList.add('ahead');
+        else deltaEl.classList.add('behind');
+      }
+    }
+
+    row.appendChild(nameEl);
+    row.appendChild(timeEl);
+    if (deltaEl) row.appendChild(deltaEl);
+    list.appendChild(row);
+  }
+}
+
+function renderTimer(s) {
+  setTimerText(s.elapsed);
+
+  const timerEl    = document.getElementById('main-timer');
+  const timerTopEl = document.getElementById('timer-top-display');
+  const deltaEl    = document.getElementById('live-delta');
+  const deltaTopEl = document.getElementById('live-delta-top');
+
+  // Timer color by state
+  let timerColor = '';
+  if (!cfg.simpleTimerMode) {
+    if (s.state === 'finished') timerColor = 'var(--acc)';
+    else if (s.liveDelta != null) timerColor = s.liveDelta < 0 ? 'var(--ahead)' : 'var(--behind)';
+  }
+  timerEl.style.color    = timerColor;
+  timerTopEl.style.color = timerColor;
+
+  // Delta display (update both positions)
+  let deltaText = '', deltaClass = '';
+  const comparisonMode = cfg.showComparison || 'pb';
+  const liveDeltaValue = getLiveDeltaByMode(s, comparisonMode);
+  if (!cfg.simpleTimerMode && liveDeltaValue != null && s.state === 'running' && comparisonMode !== 'none') {
+    const sign = liveDeltaValue < 0 ? '−' : '+';
+    deltaText  = sign + fmtDelta(Math.abs(liveDeltaValue));
+    deltaClass = liveDeltaValue < 0 ? 'ahead' : 'behind';
+  }
+  if (deltaEl)    { deltaEl.textContent    = deltaText; deltaEl.className    = 'live-delta ' + deltaClass; }
+  if (deltaTopEl) { deltaTopEl.textContent = deltaText; deltaTopEl.className = 'live-delta ' + deltaClass; }
+}
+
+function renderFooter(s) {
+  const footer = document.getElementById('footer');
+  if (cfg.simpleTimerMode) { footer.style.display = 'none'; return; }
+  const showSob = cfg.showSobRow !== false;
+
+  if (!s.profile || !showSob) { footer.style.display = 'none'; return; }
+
+  footer.style.display = '';
+
+  const segs = s.segments || [];
+  const sob = segs.reduce((sum, seg) => sum + (seg.gold ?? seg.pb ?? 0), 0);
+  const pb  = segs.reduce((sum, seg) => sum + (seg.pb   ?? 0), 0);
+
+  document.getElementById('sob-val').textContent = sob > 0 ? fmtTime(sob) : '—';
+  document.getElementById('pb-val').textContent  = pb  > 0 ? fmtTime(pb)  : '—';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Utilities
+// ═══════════════════════════════════════════════════════════════════════════
+
+function fmtTime(secs) {
+  if (secs == null) return '';
+  const h  = Math.floor(secs / 3600);
+  const m  = Math.floor((secs % 3600) / 60);
+  const s  = Math.floor(secs % 60);
+  const ms = Math.floor((secs % 1) * 1000);
+  return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+}
+
+function fmtDelta(secs) {
+  if (secs < 60) return secs.toFixed(1) + 's';
+  const m = Math.floor(secs / 60);
+  const s = (secs % 60).toFixed(0);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function targetForMode(seg, mode) {
+  if (mode === 'sob') return seg.gold ?? seg.pb ?? null;
+  if (mode === 'wr')  return seg.wr ?? seg.pb ?? seg.gold ?? null;
+  return seg.pb ?? seg.gold ?? null;
+}
+
+function getSegmentDelta(seg, mode) {
+  if (mode === 'none') return null;
+  if (mode === 'pb' && seg.delta != null) return seg.delta;
+  if (seg.splitTime == null) return null;
+  const target = targetForMode(seg, mode);
+  if (target == null) return null;
+  return seg.splitTime - target;
+}
+
+function getLiveDeltaByMode(s, mode) {
+  if (mode === 'none') return null;
+  if (mode === 'pb') return s.liveDelta ?? null;
+
+  // For SoB / WR we derive the current split delta from elapsed runtime.
+  const segs = s.segments || [];
+  const idx = s.currentSplit ?? 0;
+  if (!segs[idx]) return null;
+
+  let completed = 0;
+  for (let i = 0; i < idx; i++) completed += segs[i]?.splitTime ?? 0;
+  const currentDuration = Math.max(0, (s.elapsed ?? 0) - completed);
+  const target = targetForMode(segs[idx], mode);
+  if (target == null) return null;
+  return currentDuration - target;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Dashboard preview injection
+// ═══════════════════════════════════════════════════════════════════════════
+
+// When embedded as an iframe in the dashboard, the parent sends PREVIEW_PROFILE
+// to show a selected profile's data without loading it into the timer.
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'PREVIEW_PROFILE') return;
+  const p = e.data.payload;
+  if (!p) {
+    // Restore the live timer snapshot if available
+    if (snapshot) render(snapshot);
+    return;
+  }
+  stopRaf();
+  render({
+    state: 'idle',
+    elapsed: 0,
+    currentSplit: -1,
+    profile: {
+      game:     p.game     || '',
+      category: p.category || '',
+      attempts: p.attempts || 0,
+      finished: p.finished || 0,
+    },
+    segments: (p.splits || []).map(s => ({
+      name:      s.name  || '',
+      pb:        s.pb    ?? null,
+      gold:      s.gold  ?? null,
+      splitTime: null,
+      delta:     null,
+    })),
+    liveDelta: null,
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════════════════════════════════
+
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChatLink Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--ff, 'Archivo', system-ui, sans-serif);
+}
+
+#feed {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap, 4px);
+  padding: var(--padding, 10px);
+  max-height: 100vh;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+
+#feed.align-top {
+  top: 0;
+  bottom: auto;
+  justify-content: flex-start;
+}
+
+.msg {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 8px;
+  line-height: 1.45;
+  animation: fadeSlideIn 0.25s ease;
+  flex-shrink: 0;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.msg-bg {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.msg-nobg {
+  background: transparent;
+}
+
+.platform-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: 3px;
+  padding: 1px 4px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.platform-badge.twitch {
+  background: rgba(145, 70, 255, 0.3);
+  color: #c9a0ff;
+}
+
+.platform-badge.youtube {
+  background: rgba(255, 64, 64, 0.25);
+  color: #ff9090;
+}
+
+.msg-author {
+  font-size: var(--fs, 14px);
+  font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.msg-text {
+  font-size: var(--fs, 14px);
+  color: rgba(255, 255, 255, 0.9);
+  word-break: break-word;
+  text-shadow: var(--tshadow, 1px 1px 2px rgba(0,0,0,0.8));
+}
+
+.msg-text mark {
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.msg.highlighted {
+  border-left: 3px solid rgba(2, 205, 164, 0.7);
+  padding-left: 6px;
+}
+</style>
+<script src="/shared/utils.js"></script>
+<script src="/shared/ws-client.js"></script>
+</head>
+<body>
+<div id="feed"></div>
+
+<script>
+// ── URL parameters ─────────────────────────────────────────────────
+const params      = new URLSearchParams(location.search);
+const filterPlat  = params.get('platform') || 'all';
+const maxMsgs     = Math.max(1, parseInt(params.get('max') || '50', 10));
+const fontSize    = params.get('fs')  || '14';
+const showBadge   = params.get('badge') !== '0';
+const showBg      = params.get('bg')    !== '0';
+const padding     = params.get('padding') || '10';
+const gap         = params.get('gap')     || '4';
+const newestPos   = params.get('newest')
+  || (params.get('dir') === 'down' ? 'top' : 'bottom');
+const alignPos    = params.get('align') || 'bottom';
+const fontKey     = params.get('font') || 'archivo';
+
+// Apply CSS vars
+const fontMap = {
+  archivo: "'Archivo', system-ui, sans-serif",
+  sans: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+  serif: "Georgia, 'Times New Roman', serif",
+  mono: "Consolas, 'Courier New', monospace",
+  rounded: "'Trebuchet MS', 'Segoe UI', sans-serif",
+};
+document.documentElement.style.setProperty('--fs',      `${fontSize}px`);
+document.documentElement.style.setProperty('--padding', `${padding}px`);
+document.documentElement.style.setProperty('--gap',     `${gap}px`);
+document.documentElement.style.setProperty('--ff',      fontMap[fontKey] || fontMap.archivo);
+if (alignPos === 'top') document.getElementById('feed').classList.add('align-top');
+
+// ── State ──────────────────────────────────────────────────────────
+let keywords    = [];
+let messages    = [];      // DOM-tracked message elements (for pruning)
+let seenIds     = new Set(); // deduplication across WS + HTTP paths
+let ytPolling   = null;
+let cfg         = {};
+let statusTimer = null;
+
+const _wsClient = createWsClient({
+  onMessage(msg) {
+    if (msg.type === 'CHAT_HISTORY' && Array.isArray(msg.payload)) {
+      for (const item of msg.payload) pushMessage(item);
+      return;
+    }
+    if (msg.type === 'CHAT_MESSAGE' && msg.payload) pushMessage(msg.payload);
+  },
+});
+
+// ── Init ───────────────────────────────────────────────────────────
+async function init() {
+  try {
+    cfg = await safeJson('/api/chatdeck/config');
+    keywords = cfg.keywords || [];
+    _wsClient.start();
+    await loadPlatformStatus();
+    statusTimer = setInterval(loadPlatformStatus, 3000);
+  } catch (e) {
+    console.error('[Overlay] init failed', e);
+  }
+}
+
+async function loadPlatformStatus() {
+  try {
+    const status = await safeJson('/api/platforms');
+    const ytReady = !!(status?.youtube?.videoId);
+    if (filterPlat !== 'twitch' && ytReady && !ytPolling) startYtPolling();
+    if ((!ytReady || filterPlat === 'twitch') && ytPolling) {
+      clearInterval(ytPolling);
+      ytPolling = null;
+    }
+  } catch (_) {}
+}
+
+// ── YouTube polling ────────────────────────────────────────────────
+function startYtPolling() {
+  if (ytPolling) { clearInterval(ytPolling); ytPolling = null; }
+  pollYt();
+  ytPolling = setInterval(pollYt, 6000);
+}
+
+async function pollYt() {
+  try {
+    const d = await safeJson('/api/chatdeck/youtube/poll');
+    if (d.error) return;
+    for (const msg of (d.messages || [])) {
+      pushMessage({
+        id:          msg.id,
+        platform:    'youtube',
+        authorName:  msg.authorName,
+        authorColor: '#ff4040',
+        text:        msg.text,
+      });
+    }
+    if (d.pollingMs && ytPolling) {
+      clearInterval(ytPolling);
+      ytPolling = setInterval(pollYt, Math.max(d.pollingMs, 4000));
+    }
+  } catch (_) {}
+}
+
+// ── Message pipeline ───────────────────────────────────────────────
+function pushMessage(raw) {
+  if (filterPlat !== 'all' && raw.platform !== filterPlat) return;
+
+  // Deduplicate: same message can arrive via WS broadcast AND HTTP poll response
+  if (raw.id) {
+    if (seenIds.has(raw.id)) return;
+    seenIds.add(raw.id);
+    if (seenIds.size > 2000) {
+      const keep = [...seenIds].slice(-1000);
+      seenIds = new Set(keep);
+    }
+  }
+
+  const highlighted = keywords.some(kw => {
+    const h = kw.caseSensitive ? raw.text : raw.text.toLowerCase();
+    const p = kw.caseSensitive ? kw.text  : kw.text.toLowerCase();
+    return h.includes(p);
+  });
+
+  const el = buildMsgEl(raw, highlighted);
+  const feed = document.getElementById('feed');
+  if (newestPos === 'top') {
+    feed.prepend(el);
+    messages.unshift(el);
+    if (messages.length > maxMsgs) {
+      const old = messages.pop();
+      if (old) old.remove();
+    }
+  } else {
+    feed.appendChild(el);
+    messages.push(el);
+    if (messages.length > maxMsgs) {
+      const old = messages.shift();
+      if (old) old.remove();
+    }
+  }
+}
+
+function buildMsgEl(raw, highlighted) {
+  const el = document.createElement('div');
+  el.className = `msg ${showBg ? 'msg-bg' : 'msg-nobg'} ${highlighted ? 'highlighted' : ''}`;
+
+  const authorHtml = `<span class="msg-author" style="color:${esc(raw.authorColor)}">${esc(raw.authorName)}</span>`;
+  const textHtml   = buildTextHtml(raw.text, highlighted);
+  const badgeHtml  = showBadge
+    ? `<span class="platform-badge ${raw.platform}">${raw.platform === 'twitch' ? 'TW' : 'YT'}</span>`
+    : '';
+
+  el.innerHTML = `${badgeHtml}${authorHtml}<span class="msg-text">${textHtml}</span>`;
+  return el;
+}
+
+function buildTextHtml(text, highlighted) {
+  let html = esc(text);
+  if (highlighted) {
+    for (const kw of keywords) {
+      if (!kw.text) continue;
+      const re = new RegExp(escRe(esc(kw.text)), kw.caseSensitive ? 'g' : 'gi');
+      const bg = kw.color ? kw.color + '33' : 'rgba(2,205,164,0.22)';
+      const fg = kw.color || '#02cda4';
+      html = html.replace(re, m => `<mark style="background:${bg};color:${fg}">${m}</mark>`);
+    }
+  }
+  return html;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// ── Start ──────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

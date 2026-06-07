@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Einstellungen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/design.css">
+<script src="/shared/utils.js"></script>
+<script src="/shared/i18n.js"></script>
+<script src="/shared/toast.js"></script>
+<script src="/shared/winctrl.js" defer></script>
+<style>
+.app { width: min(860px, 94vw); margin: 24px auto 40px; display: flex; flex-direction: column; gap: 20px; }
+
+.section-hd {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-s); padding-bottom: 8px; border-bottom: 1px solid var(--border-s);
+  margin-bottom: 14px;
+}
+.section-hd svg { color: var(--acc2); flex-shrink: 0; }
+
+.hotkey-rows { display: flex; flex-direction: column; }
+.hotkey-row {
+  display: grid; grid-template-columns: 30px 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--border-s);
+}
+.hotkey-row:last-child { border-bottom: none; }
+.hk-icon {
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; color: var(--text-s);
+}
+.hk-label { font-size: 13px; color: var(--text); font-weight: 500; }
+.hk-desc  { font-size: 11px; color: var(--text-s); margin-top: 1px; }
+.hotkey-btn {
+  font-family: var(--mono); font-size: 12px; min-width: 120px; height: 32px;
+  border: 1px solid var(--border-m); background: rgba(255,255,255,0.06);
+  color: var(--text); cursor: pointer; border-radius: var(--r);
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.hotkey-btn:hover { border-color: var(--border-focus); background: rgba(255,255,255,0.1); }
+.hotkey-btn.capture { border-color: var(--acc); background: var(--acc-bg); color: var(--acc2); animation: hk-pulse .8s ease infinite alternate; }
+.hotkey-btn.conflict { border-color: var(--danger-border); color: var(--danger); }
+@keyframes hk-pulse { from { opacity:1 } to { opacity:.45 } }
+
+.hk-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 14px; gap: 10px;
+}
+.hk-hint { flex: 1; font-size: 11px; color: var(--text-s); line-height: 1.65; }
+
+.key-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.key-chip {
+  font-family: var(--mono); font-size: 11px; padding: 3px 8px;
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+  border-radius: var(--r-xs); color: var(--text-m);
+}
+</style>
+</head>
+<body>
+<header class="tool-topbar">
+  <div class="tool-topbar-brand">
+    <span class="tool-topbar-name" data-i18n="settings.title">Einstellungen</span>
+  </div>
+  <div class="tool-topbar-status"></div>
+  <a class="link" href="/" data-i18n="settings.back">← Hub</a>
+</header>
+
+<main class="app">
+
+  <!-- SplitFlow Hotkeys -->
+  <div>
+    <div class="section-hd">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="5" width="14" height="8" rx="1.5"/>
+        <path d="M4 9h1M8 9h1M12 9h1M5.5 11.5h5"/>
+      </svg>
+      SplitFlow — Hotkeys
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 260px;gap:18px;align-items:start">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+            <span class="card-title" data-i18n="settings.hotkeys.title">Timer-Aktionen</span>
+            <button class="btn sm" onclick="resetHotkeys()" data-i18n="settings.hotkeys.reset">Auf Standard zurücksetzen</button>
+          </div>
+          <div class="hotkey-rows">
+            <div class="hotkey-row">
+              <div class="hk-icon"><svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><path d="M3 2l9 5-9 5z"/></svg></div>
+              <div><div class="hk-label" data-i18n="settings.hotkeys.start">Start / Split / Fortsetzen</div><div class="hk-desc" data-i18n="settings.hotkeys.start_desc">Startet, setzt Split oder setzt nach Pause fort</div></div>
+              <button class="hotkey-btn" id="hk-startSplit" onclick="captureHotkey('startSplit',this)">Numpad1</button>
+            </div>
+            <div class="hotkey-row">
+              <div class="hk-icon"><svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="2" width="4" height="10" rx="1"/><rect x="8" y="2" width="4" height="10" rx="1"/></svg></div>
+              <div><div class="hk-label" data-i18n="settings.hotkeys.pause">Pause / Fortsetzen</div><div class="hk-desc" data-i18n="settings.hotkeys.pause_desc">Pausiert den laufenden Timer</div></div>
+              <button class="hotkey-btn" id="hk-pause" onclick="captureHotkey('pause',this)">Numpad2</button>
+            </div>
+            <div class="hotkey-row">
+              <div class="hk-icon"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a5 5 0 1 0 1-3"/><path d="M2 2.5V7h4.5"/></svg></div>
+              <div><div class="hk-label" data-i18n="settings.hotkeys.reset">Reset</div><div class="hk-desc" data-i18n="settings.hotkeys.reset_desc">Timer und alle Splits zurücksetzen</div></div>
+              <button class="hotkey-btn" id="hk-reset" onclick="captureHotkey('reset',this)">Numpad3</button>
+            </div>
+            <div class="hotkey-row">
+              <div class="hk-icon"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h5.5a3.5 3.5 0 1 1 0 7H5"/><path d="M2 5.5L4.5 3M2 5.5l2.5 2.5"/></svg></div>
+              <div><div class="hk-label" data-i18n="settings.hotkeys.undo">Undo Split</div><div class="hk-desc" data-i18n="settings.hotkeys.undo_desc">Letzten Split rückgängig machen</div></div>
+              <button class="hotkey-btn" id="hk-undo" onclick="captureHotkey('undo',this)">Numpad4</button>
+            </div>
+            <div class="hotkey-row">
+              <div class="hk-icon"><svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><path d="M2 3.5l6 3.5-6 3.5z"/><rect x="10" y="3.5" width="2" height="7" rx=".7"/></svg></div>
+              <div><div class="hk-label" data-i18n="settings.hotkeys.skip">Split überspringen</div><div class="hk-desc" data-i18n="settings.hotkeys.skip_desc">Aktuellen Split ohne Zeit überspringen</div></div>
+              <button class="hotkey-btn" id="hk-skip" onclick="captureHotkey('skip',this)">Numpad5</button>
+            </div>
+          </div>
+          <div class="hk-footer">
+            <span class="hk-hint" data-i18n="settings.hotkeys.hint">Klicke einen Button, dann drücke die gewünschte Taste. Escape bricht ab. Hotkeys wirken systemweit — auch wenn das Spiel im Vordergrund ist.</span>
+            <button class="btn primary" onclick="saveHotkeys()">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5l3.5 3.5L12 3"/></svg>
+              <span data-i18n="settings.hotkeys.save">Speichern</span>
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="background:rgba(255,255,255,0.03)">
+            <span class="card-title" data-i18n="settings.hotkeys.keys_title">Unterstützte Tasten</span>
+            <div class="key-chips">
+              <span class="key-chip">Numpad 0–9</span>
+              <span class="key-chip">F1–F12</span>
+              <span class="key-chip">Space</span>
+              <span class="key-chip">Insert</span>
+              <span class="key-chip">Delete</span>
+              <span class="key-chip">Home / End</span>
+            </div>
+            <p style="font-size:11px;color:var(--text-s);margin-top:10px;line-height:1.65" data-i18n="settings.hotkeys.keys_hint">Numpad-Tasten sind ideal — sie sind beim Spielen selten belegt.</p>
+          </div>
+          <div class="card" style="background:rgba(255,255,255,0.03)">
+            <span class="card-title" style="margin-bottom:8px;display:block" data-i18n="settings.hotkeys.conflict_title">Konflikt-Erkennung</span>
+            <p style="font-size:11px;color:var(--text-s);line-height:1.65" data-i18n="settings.hotkeys.conflict_desc">Wenn zwei Aktionen die gleiche Taste haben, werden die Buttons rot markiert und das Speichern wird blockiert.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+</main>
+
+
+<script>
+'use strict';
+let hotkeys = { startSplit:'Numpad1', pause:'Numpad2', reset:'Numpad3', undo:'Numpad4', skip:'Numpad5' };
+let captureTarget = null;
+
+async function boot() {
+  try {
+    const s = await safeJson('/api/settings');
+    if (s && s.hotkeys) hotkeys = Object.assign({}, hotkeys, s.hotkeys);
+    applyForm();
+  } catch(_) {}
+}
+
+function applyForm() {
+  for (const [k, v] of Object.entries(hotkeys)) {
+    const btn = document.getElementById('hk-' + k);
+    if (btn) btn.textContent = v || '—';
+  }
+  checkConflicts();
+}
+
+function captureHotkey(key, btn) {
+  if (captureTarget) {
+    captureTarget.classList.remove('capture');
+    captureTarget.textContent = hotkeys[captureTarget.id.replace('hk-', '')] || '—';
+  }
+  captureTarget = btn;
+  btn.classList.add('capture');
+  btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="4"/></svg> ${t('settings.hotkeys.capture')}`;
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!captureTarget) return;
+  e.preventDefault();
+  if (e.key === 'Escape') {
+    captureTarget.classList.remove('capture');
+    captureTarget.textContent = hotkeys[captureTarget.id.replace('hk-', '')] || '—';
+    captureTarget = null;
+    return;
+  }
+  const mapped = mapKey(e);
+  if (!mapped) return;
+  const key = captureTarget.id.replace('hk-', '');
+  hotkeys[key] = mapped;
+  captureTarget.classList.remove('capture');
+  captureTarget.textContent = mapped;
+  captureTarget = null;
+  checkConflicts();
+});
+
+function mapKey(e) {
+  if (e.code.startsWith('Numpad')) return e.code;
+  if (/^F\d+$/.test(e.code)) return e.code;
+  if (['Space','Insert','Delete','Home','End'].includes(e.code)) return e.code;
+  return null;
+}
+
+function checkConflicts() {
+  const vals = Object.values(hotkeys).filter(Boolean);
+  const dupes = vals.filter((v, i) => vals.indexOf(v) !== i);
+  for (const [k, v] of Object.entries(hotkeys)) {
+    const btn = document.getElementById('hk-' + k);
+    if (btn) btn.classList.toggle('conflict', dupes.includes(v));
+  }
+  return dupes.length === 0;
+}
+
+function resetHotkeys() {
+  hotkeys = { startSplit:'Numpad1', pause:'Numpad2', reset:'Numpad3', undo:'Numpad4', skip:'Numpad5' };
+  applyForm();
+}
+
+async function saveHotkeys() {
+  if (!checkConflicts()) { toast(t('settings.hotkeys.conflict'), 'error'); return; }
+  try {
+    await safeJson('/api/settings', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotkeys }),
+    });
+    toast(t('settings.hotkeys.saved'), 'ok');
+  } catch(_) { toast(t('settings.hotkeys.save_error'), 'error'); }
+}
+
+boot();
+</script>
+</body>
+</html>

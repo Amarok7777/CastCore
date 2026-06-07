@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SplitFlow — OAuth Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/design.css">
+<script src="/shared/i18n.js"></script>
+<style>
+  #app {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+  }
+  .container {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--r-lg); padding: 40px;
+    max-width: 500px; width: 100%;
+    backdrop-filter: blur(10px);
+  }
+  .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .logo-mark {
+    width: 40px; height: 40px; border-radius: var(--r-sm);
+    background: linear-gradient(140deg, var(--acc) 0%, var(--acc2) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; color: #062119; font-size: 20px;
+  }
+  .logo-text { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 {
+    font-size: 24px; font-weight: 700; margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--acc), var(--acc2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .subtitle { color: var(--text-m); margin-bottom: 28px; font-size: 13px; }
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 11px; font-weight: 700; color: var(--acc);
+    text-transform: uppercase; letter-spacing: 0.10em; margin-bottom: 14px;
+  }
+  /* Auth page btn — full-width block */
+  .btn { display: block; width: 100%; margin-bottom: 10px; justify-content: center; }
+
+  .status {
+    padding: 14px; border-radius: var(--r-sm); margin-bottom: 14px;
+    font-size: 13px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02); display: none;
+  }
+  .status.success { background: var(--ok-bg); border-color: var(--ok-border); color: var(--acc2); display: block; }
+  .status.error   { background: var(--danger-bg); border-color: var(--danger-border); color: #ff9090; display: block; }
+  .status.info    { background: rgba(79,163,255,0.08); border-color: rgba(79,163,255,0.25); color: #8ec8ff; display: block; }
+
+  .code-box {
+    background: rgba(15,26,34,0.8); border: 1px solid var(--border);
+    border-radius: var(--r-sm); padding: 16px;
+    font-family: var(--mono); font-size: 20px; font-weight: 600;
+    text-align: center; color: var(--acc2); margin: 18px 0; letter-spacing: 3px;
+  }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: var(--acc);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .info-box {
+    background: rgba(79,163,255,0.05); border: 1px solid rgba(79,163,255,0.2);
+    border-radius: var(--r-sm); padding: 12px; margin: 14px 0; font-size: 13px;
+    color: var(--text-m);
+  }
+  .info-box strong { color: #8ec8ff; }
+
+  .notice {
+    border-radius: var(--r); padding: 13px 15px; margin: 0 0 16px;
+    border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+    color: var(--text-m);
+  }
+  .notice.device { background: rgba(79,163,255,0.08); border-color: rgba(79,163,255,0.26); }
+  .notice.reauth { background: var(--acc-bg); border-color: var(--acc-border); }
+  .notice-title  { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+  .notice-text   { font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="container">
+    <div class="logo">
+      <div class="logo-mark">⏱</div>
+      <div class="logo-text">SplitFlow</div>
+    </div>
+    
+    <h1 data-i18n="auth.title">OAuth Setup</h1>
+    <p class="subtitle" data-i18n="auth.subtitle">Authenticate with Twitch and YouTube</p>
+    
+    <div id="status"></div>
+    
+    <!-- TWITCH SECTION -->
+    <div class="section" id="twitch-section">
+      <div class="section-title" data-i18n="auth.twitch.section">Twitch — Device Flow</div>
+      <div class="notice device" id="twitch-notice" style="display: none;"></div>
+      <p style="margin-bottom: 12px; font-size: 13px; color: rgba(243, 249, 248, 0.7);" data-i18n="auth.twitch.description">
+        Follow these steps to authenticate with Twitch:
+      </p>
+      <button class="btn primary" id="twitch-start" data-i18n="auth.twitch.start">Start Device Flow</button>
+      
+      <div id="twitch-pending" style="display: none;">
+        <div class="info-box" data-i18n="auth.twitch.step1">
+          Step 1: Copy this code and visit twitch.tv/activate
+        </div>
+        <div class="code-box" id="twitch-code">-</div>
+        <div class="info-box" data-i18n="auth.twitch.step2">
+          Step 2: Paste the code and authorize the application
+        </div>
+        <div style="text-align: center; margin: 16px 0;">
+          <span class="spinner"></span>&nbsp;<span data-i18n="auth.twitch.waiting">Waiting for authorization…</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- STATUS SECTION -->
+    <div class="section" id="status-section" style="display: none;">
+      <div class="section-title" data-i18n="auth.status.section">Current Status</div>
+      <div id="auth-status" style="font-size: 13px; line-height: 1.8;">
+        <div>Twitch: <span id="twitch-status" data-i18n="auth.status.not_auth">Not authenticated</span></div>
+        <div>YouTube: <span id="youtube-status" data-i18n="auth.status.not_auth">Not authenticated</span></div>
+      </div>
+      <button class="btn" onclick="location.href='/'" data-i18n="auth.back">← Back to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TWITCH_POLL_INTERVAL = 2000;
+let twitchDeviceFlowAutostarted = false;
+
+async function getTwitchAuthState() {
+  try {
+    const res = await fetch('/api/platforms');
+    const data = await res.json();
+    return data || {};
+  } catch {
+    return {};
+  }
+}
+
+function renderTwitchNotice(state) {
+  const notice = document.getElementById('twitch-notice');
+  const isDeviceOnly = state?.oauth?.twitchFlow === 'device';
+  const loggedIn = !!state?.twitch?.oauthLoggedIn;
+
+  if (loggedIn) {
+    notice.style.display = 'none';
+    notice.className = 'notice device';
+    notice.innerHTML = '';
+    return;
+  }
+
+  if (isDeviceOnly) {
+    notice.className = 'notice device reauth';
+    notice.innerHTML = `
+      <span class="notice-title">${t('auth.twitch.notice.reauth.title')}</span>
+      <div class="notice-text">${t('auth.twitch.notice.reauth.text')}</div>
+    `;
+    notice.style.display = 'block';
+    return;
+  }
+
+  notice.className = 'notice device';
+  notice.innerHTML = `
+    <span class="notice-title">${t('auth.twitch.notice.manual.title')}</span>
+    <div class="notice-text">${t('auth.twitch.notice.manual.text')}</div>
+  `;
+  notice.style.display = 'block';
+}
+
+async function startTwitchDeviceFlow() {
+  const btn = document.getElementById('twitch-start');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Starting...';
+  
+  try {
+    const res = await fetch('/api/platforms/twitch/oauth/start', { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.error) {
+      showStatus(data.error, 'error');
+      btn.disabled = false;
+      btn.innerHTML = t('auth.twitch.start');
+      return;
+    }
+
+    if (data.flow !== 'device') {
+      showStatus('Device Flow not available', 'error');
+      btn.disabled = false;
+      btn.innerHTML = t('auth.twitch.start');
+      return;
+    }
+    
+    // Show pending UI
+    document.getElementById('twitch-pending').style.display = 'block';
+    document.getElementById('twitch-code').textContent = data.userCode || 'N/A';
+    showStatus('Device code generated. Visit twitch.tv/activate', 'info');
+    
+    // Poll for completion
+    pollTwitchDeviceFlow(data.pollState);
+  } catch (err) {
+    showStatus('Error: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = t('auth.twitch.start');
+  }
+}
+
+async function pollTwitchDeviceFlow(pollState) {
+  const maxAttempts = (150 * 1000) / TWITCH_POLL_INTERVAL; // 2.5 min timeout
+  let attempts = 0;
+  
+  const poll = async () => {
+    attempts++;
+    if (attempts > maxAttempts) {
+      showStatus(t('auth.twitch.timeout'), 'error');
+      document.getElementById('twitch-pending').style.display = 'none';
+      document.getElementById('twitch-start').disabled = false;
+      document.getElementById('twitch-start').innerHTML = t('auth.twitch.start');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/platforms/twitch/oauth/poll?state=${pollState}`);
+      const data = await res.json();
+      
+      if (data.success) {
+        showStatus(t('auth.twitch.success', {username: data.username}), 'success');
+        document.getElementById('twitch-pending').style.display = 'none';
+        document.getElementById('twitch-section').innerHTML = `
+          <div class="section-title">${t('auth.twitch.authenticated')}</div>
+          <div class="info-box">
+            <strong>${t('auth.twitch.channel')}</strong> ${data.channel}<br>
+            <strong>${t('auth.twitch.expires', {hours: Math.round((data.expiresAt - Date.now()) / 3600000)})}</strong>
+          </div>
+        `;
+        updateAuthStatus();
+        return;
+      }
+      
+      // Still pending, poll again
+      setTimeout(poll, TWITCH_POLL_INTERVAL);
+    } catch (err) {
+      // Ignore poll errors, retry
+      setTimeout(poll, TWITCH_POLL_INTERVAL);
+    }
+  };
+  
+  poll();
+}
+
+function startYouTubeOAuth() {
+  window.location.href = '/auth/oauth/start?provider=youtube';
+}
+
+async function updateAuthStatus() {
+  try {
+    const state = await getTwitchAuthState();
+    document.getElementById('status-section').style.display = 'block';
+    renderTwitchNotice(state);
+    
+    const twStatus = state?.twitch?.oauthLoggedIn
+      ? `✓ ${state?.twitch?.username || t('auth.status.not_auth')}`
+      : t('auth.status.not_auth');
+    const ytStatus = t('auth.status.not_auth'); // Would fetch from /api/platforms
+    
+    document.getElementById('twitch-status').textContent = twStatus;
+    document.getElementById('youtube-status').textContent = ytStatus;
+  } catch {
+    // Ignore errors
+  }
+}
+
+async function bootstrapAuthView() {
+  const state = await getTwitchAuthState();
+  renderTwitchNotice(state);
+  if (state?.oauth?.twitchFlow === 'device' && !state?.twitch?.oauthLoggedIn && !twitchDeviceFlowAutostarted) {
+    twitchDeviceFlowAutostarted = true;
+    await startTwitchDeviceFlow();
+    return;
+  }
+  await updateAuthStatus();
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.className = `status ${type}`;
+  el.textContent = msg;
+}
+
+document.getElementById('twitch-start').addEventListener('click', startTwitchDeviceFlow);
+
+// Initial state check
+setTimeout(() => {
+  bootstrapAuthView().catch(() => updateAuthStatus());
+}, 500);
+</script>
+</body>
+</html>

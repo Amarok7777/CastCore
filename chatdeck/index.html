@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChatLink</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/design.css">
+<script src="/shared/utils.js"></script>
+<script src="/shared/i18n.js"></script>
+<script src="/shared/ws-client.js"></script>
+<script src="/shared/platform-status.js"></script>
+<script src="/shared/winctrl.js" defer></script>
+<style>
+body { overflow-x: hidden; }
+.app { width: min(1400px, 97vw); margin: 0 auto; padding: 16px 0 32px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Platform status pills */
+.platform-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: var(--r-pill); padding: 4px 11px; font-size: 12px;
+  border: 1px solid transparent; cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.platform-pill.twitch  { border-color: rgba(145,70,255,0.4); color: #c9a0ff; background: rgba(145,70,255,0.10); }
+.platform-pill.twitch.connected  { border-color: rgba(145,70,255,0.7); background: rgba(145,70,255,0.18); }
+.platform-pill.youtube { border-color: rgba(255,64,64,0.4);  color: #ff9090; background: rgba(255,64,64,0.09); }
+.platform-pill.youtube.connected { border-color: rgba(255,64,64,0.65); background: rgba(255,64,64,0.16); }
+
+/* Layout */
+.main-layout { display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: start; }
+.card-title  { font-size: 10px; letter-spacing: 0.14em; }
+.card-badge  { font-size: 10px; border-radius: var(--r-pill); padding: 2px 8px; border: 1px solid transparent; }
+.card-badge.ok   { color: var(--ok);   border-color: var(--ok-border);   background: var(--ok-bg); }
+.card-badge.warn { color: var(--warn); border-color: var(--warn-border); background: var(--warn-bg); }
+
+/* Field helpers (class-based inputs, different from shared type-selectors) */
+.field-row   { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.field-label { font-size: 11px; color: var(--text-s); letter-spacing: 0.05em; }
+.field-input {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+  border-radius: var(--r-sm); color: var(--text); font-family: var(--font);
+  font-size: 13px; padding: 7px 10px; width: 100%; transition: border-color var(--t-fast);
+}
+.field-input:focus { outline: none; border-color: var(--border-focus); }
+.field-input.mono  { font-family: var(--mono); font-size: 12px; }
+select.field-input { background-color: #0f1a21; color-scheme: dark; }
+select.field-input option, select.field-input optgroup { background-color: #0f1a21; color: var(--text); }
+
+/* Toggle (label-wrap pattern, different from shared input.toggle) */
+.toggle-row   { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.toggle-label { font-size: 12px; color: var(--text-m); }
+.toggle { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; background: rgba(255,255,255,0.12);
+  border-radius: 20px; cursor: pointer; transition: background .2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute; left: 3px; top: 3px;
+  width: 14px; height: 14px; background: rgba(243,249,248,0.6);
+  border-radius: 50%; transition: transform .2s, background .2s;
+}
+.toggle input:checked + .toggle-slider { background: rgba(2,205,164,0.55); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--acc); }
+
+/* Btn extensions */
+.btn:active { transform: scale(0.97); }
+.btn-row { display: flex; gap: 7px; margin-top: 6px; flex-wrap: wrap; }
+
+/* ── Chat feed ────────────────────────────────────────────── */
+.chat-feed {
+  height: calc(100vh - 200px);
+  min-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+.chat-feed::-webkit-scrollbar { width: 4px; }
+.chat-feed::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+.chat-msg {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  line-height: 1.4;
+  transition: background .1s;
+}
+.chat-msg:hover { background: rgba(255,255,255,0.04); }
+.chat-msg.highlighted {
+  background: rgba(2,205,164,0.07);
+  border-left: 2px solid rgba(2,205,164,0.5);
+  padding-left: 6px;
+}
+.chat-msg.command-msg {
+  background: rgba(255,178,107,0.06);
+  border-left: 2px solid rgba(255,178,107,0.4);
+  padding-left: 6px;
+}
+
+.msg-platform {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+  align-self: center;
+}
+.msg-platform.twitch {
+  background: rgba(145,70,255,0.18);
+  color: #c9a0ff;
+}
+
+.msg-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: rgba(243,249,248,0.25);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.msg-author {
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.msg-text {
+  font-size: 13px;
+  color: rgba(243,249,248,0.88);
+  word-break: break-word;
+}
+.msg-text mark {
+  background: rgba(2,205,164,0.22);
+  color: #52f3c8;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: rgba(243,249,248,0.3);
+  font-size: 13px;
+  gap: 8px;
+  text-align: center;
+}
+.chat-empty .hint {
+  font-size: 11px;
+  color: rgba(243,249,248,0.2);
+  max-width: 260px;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Keyword list ─────────────────────────────────────────── */
+.keyword-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  margin-bottom: 8px;
+}
+.keyword-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.keyword-swatch {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.keyword-text {
+  font-size: 12px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.keyword-del {
+  background: none;
+  border: none;
+  color: rgba(243,249,248,0.3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.keyword-del:hover { color: #ff8d8d; }
+
+.add-kw-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 5px;
+  align-items: center;
+}
+input[type="color"] {
+  width: 32px; height: 30px;
+  padding: 2px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+}
+
+/* ── Command list ─────────────────────────────────────────── */
+.command-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  margin-bottom: 8px;
+}
+.command-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px;
+  padding: 7px 8px;
+}
+.command-trigger {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #52f3c8;
+  margin-bottom: 2px;
+}
+.command-desc {
+  font-size: 11px;
+  color: rgba(243,249,248,0.45);
+}
+.command-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+/* ── Filter bar ───────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.filter-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: rgba(243,249,248,0.6);
+  cursor: pointer;
+  transition: all .12s;
+}
+.filter-btn:hover { background: rgba(255,255,255,0.10); }
+.filter-btn.active-twitch { background: rgba(145,70,255,0.15); border-color: rgba(145,70,255,0.4); color: #c9a0ff; }
+.filter-btn.active-all { background: rgba(2,205,164,0.12); border-color: rgba(2,205,164,0.4); color: #52f3c8; }
+.filter-search {
+  flex: 1;
+  min-width: 120px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 7px;
+  color: #f3f9f8;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 9px;
+}
+.filter-search:focus { outline: none; border-color: rgba(2,205,164,0.4); }
+.msg-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: rgba(243,249,248,0.3);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+hr.sep {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  margin: 10px 0;
+}
+
+
+@media (max-width: 900px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .chat-feed { height: 420px; }
+}
+</style>
+</head>
+<body>
+<header class="tool-topbar">
+  <div class="tool-topbar-brand">
+    <span class="tool-topbar-name" data-i18n="chatdeck.title">Chat<em>Link</em></span>
+    <span class="tool-topbar-sub" data-i18n="chatdeck.subtitle">Chat Manager</span>
+  </div>
+  <div class="tool-topbar-status">
+    <span class="platform-pill twitch" id="twitch-pill" title="Twitch-Verbindung" onclick="toggleTwitchConnect()">
+      <span class="dot"></span>
+      <span id="twitch-pill-text" data-i18n="chatdeck.twitch_disconnected">Twitch getrennt</span>
+    </span>
+    <span class="platform-pill youtube" id="yt-pill" title="YouTube-Status">
+      <span class="dot"></span>
+      <span id="yt-pill-text" data-i18n="chatdeck.youtube_disconnected">YouTube getrennt</span>
+    </span>
+  </div>
+  <a class="link" href="/" data-i18n="nav.back_hub">← Hub</a>
+</header>
+<div class="app">
+
+  <!-- Main layout -->
+  <div class="main-layout">
+
+    <!-- Chat Feed -->
+    <div class="card" style="display:flex;flex-direction:column;gap:0;">
+      <div class="card-header">
+        <span class="card-title" data-i18n="chatdeck.chat">Live Chat</span>
+        <span class="msg-count" id="msg-count">0 Nachrichten</span>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <button class="filter-btn active-all" id="filter-all" onclick="setFilter('all')" data-i18n="chatdeck.filter.all">Alle</button>
+        <button class="filter-btn" id="filter-twitch" onclick="setFilter('twitch')" data-i18n="chatdeck.filter.twitch">Twitch</button>
+        <input class="filter-search" id="filter-search" data-i18n-placeholder="chatdeck.filter.search" placeholder="Nachrichten suchen…" oninput="renderFeed()">
+        <button class="btn sm" onclick="clearChat()" data-i18n="btn.clear">Leeren</button>
+        <button class="btn sm" id="btn-scroll-lock" onclick="toggleScrollLock()" data-i18n="chatdeck.scroll_auto">↓ Auto</button>
+      </div>
+
+      <div class="chat-feed" id="chat-feed">
+        <div class="chat-empty" id="chat-empty">
+          <span style="font-size:28px;">💬</span>
+          <span data-i18n="chatdeck.no_messages">Noch keine Nachrichten</span>
+          <span class="hint" data-i18n="chatdeck.no_messages.hint">Verbinde dich mit Twitch und YouTube zentral im Hub unter "Plattformen".</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Keywords -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title" data-i18n="chatdeck.keywords">Keyword-Highlighting</span>
+        </div>
+        <div class="keyword-list" id="keyword-list"></div>
+        <div class="add-kw-row">
+          <input class="field-input" id="new-kw-text" data-i18n-placeholder="chatdeck.keyword_ph" placeholder="Keyword…" style="margin:0" onkeydown="if(event.key==='Enter')addKeyword()">
+          <input type="color" id="new-kw-color" value="#02cda4" title="Farbe">
+          <button class="btn sm primary" onclick="addKeyword()">+</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:rgba(243,249,248,0.35);">
+          <span data-i18n="chatdeck.keyword_hint">Nachrichten mit Match werden hervorgehoben. Groß-/Kleinschreibung wird ignoriert.</span>
+        </div>
+      </div>
+
+
+      <!-- Commands -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title" data-i18n="chatdeck.commands">Command-Trigger</span>
+        </div>
+        <div class="command-list" id="command-list"></div>
+        <!-- Add command form -->
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="field-row" style="margin:0">
+            <span class="field-label" data-i18n="chatdeck.cmd.trigger">Trigger (z. B. !scene)</span>
+            <input class="field-input mono" id="new-cmd-trigger" placeholder="!command">
+          </div>
+          <div class="field-row" style="margin:0">
+            <span class="field-label" data-i18n="chatdeck.cmd.action">Aktion</span>
+            <select class="field-input" id="new-cmd-action" onchange="updateCmdParamLabel()">
+              <option value="none" data-i18n="chatdeck.cmd.action.none">Nur hervorheben</option>
+              <option value="obs-scene" data-i18n="chatdeck.cmd.action.obs_scene">OBS Szene wechseln</option>
+              <option value="timer-start" data-i18n="chatdeck.cmd.action.timer_start">Timer starten</option>
+              <option value="timer-reset" data-i18n="chatdeck.cmd.action.timer_reset">Timer reset</option>
+              <option value="trackpulse-song" data-i18n="chatdeck.cmd.action.trackpulse">TrackPulse: Now Playing ankündigen</option>
+            </select>
+          </div>
+          <div class="field-row" id="cmd-param-row" style="margin:0;display:none">
+            <span class="field-label" id="cmd-param-label" data-i18n="chatdeck.cmd.parameter">Parameter</span>
+            <input class="field-input" id="new-cmd-param" placeholder="">
+          </div>
+          <button class="btn primary" onclick="addCommand()" style="align-self:flex-start" data-i18n="btn.add">Hinzufügen</button>
+        </div>
+      </div>
+
+      <!-- BrowserSource -->
+      <div class="card" id="obs-overlay-card">
+        <div class="card-header">
+          <span class="card-title" data-i18n="chatdeck.obs_overlay">OBS BrowserSource</span>
+        </div>
+        <p style="font-size:12px;color:rgba(243,249,248,0.5);margin-bottom:10px;line-height:1.5;">
+          <span data-i18n="chatdeck.obs_overlay.desc">Transparenter Chat-Overlay für OBS. Als BrowserSource einbinden — empfohlen: 400 × 600 px.</span>
+        </p>
+
+        <div class="field-row" style="margin-bottom:8px">
+          <span class="field-label" data-i18n="widgeturls.platform">Plattform</span>
+          <select class="field-input" id="obs-platform" onchange="updateObsUrl()">
+            <option value="all" data-i18n="widgeturls.platform.all">Alle</option>
+            <option value="twitch" data-i18n="widgeturls.platform.twitch">Nur Twitch</option>
+            <option value="youtube" data-i18n="widgeturls.platform.youtube">Nur YouTube</option>
+          </select>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div class="field-row" style="margin:0">
+            <span class="field-label" data-i18n="widgeturls.max_messages">Max. Nachrichten</span>
+            <input class="field-input mono" id="obs-max" type="number" min="5" max="200" value="30"
+              style="padding:5px 8px" oninput="updateObsUrl()">
+          </div>
+          <div class="field-row" style="margin:0">
+            <span class="field-label" data-i18n="widgeturls.font_size">Schriftgröße (px)</span>
+            <input class="field-input mono" id="obs-fs" type="number" min="10" max="32" value="14"
+              style="padding:5px 8px" oninput="updateObsUrl()">
+          </div>
+        </div>
+
+        <div class="field-row" style="margin-bottom:8px">
+          <span class="field-label" data-i18n="widgeturls.newest_pos">Neueste Nachricht</span>
+          <select class="field-input" id="obs-newest" onchange="updateObsUrl()">
+            <option value="bottom" data-i18n="widgeturls.bottom">Unten</option>
+            <option value="top" data-i18n="widgeturls.top">Oben</option>
+          </select>
+        </div>
+
+        <div class="field-row" style="margin-bottom:8px">
+          <span class="field-label" data-i18n="widgeturls.font">Schriftart</span>
+          <select class="field-input" id="obs-font" onchange="updateObsUrl()">
+            <option value="archivo">Archivo (Standard)</option>
+            <option value="sans">Sans</option>
+            <option value="serif">Serif</option>
+            <option value="mono">Monospace</option>
+            <option value="rounded">Rounded</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:rgba(243,249,248,0.65);cursor:pointer;">
+            <input type="checkbox" id="obs-bg" checked onchange="updateObsUrl()"> <span data-i18n="widgeturls.background">Hintergrund</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:rgba(243,249,248,0.65);cursor:pointer;">
+            <input type="checkbox" id="obs-badge" checked onchange="updateObsUrl()"> <span data-i18n="widgeturls.platform_badge">Plattform-Badge</span>
+          </label>
+        </div>
+
+        <div style="display:flex;gap:5px;align-items:center;">
+          <input class="field-input mono" id="obs-url-output" readonly
+            style="font-size:11px;padding:6px 8px;background:rgba(0,0,0,0.3);flex:1;"
+            onclick="this.select()">
+          <button class="btn sm" onclick="copyObsUrl()" id="btn-obs-copy" title="URL kopieren" data-i18n="btn.copy">
+            Kopieren
+          </button>
+        </div>
+
+        <div style="margin-top:8px;font-size:11px;color:rgba(243,249,248,0.3);line-height:1.5;">
+          <span data-i18n="chatdeck.obs_hint">OBS → Quellen → BrowserSource → URL einfügen · Hintergrundfarbe auf transparent setzen</span>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+  </div><!-- /main-layout -->
+</div><!-- /app -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let allMessages     = [];      // { id, platform, authorName, authorColor, text, time, highlighted, isCommand }
+let keywords        = [];      // { id, text, color }
+let commands        = [];      // { id, trigger, action, actionParam }
+let filterPlatform  = 'all';
+let scrollLocked    = false;
+let twitchConnected = false;
+let ytPolling       = null;
+let cfg             = {};
+
+// ── Local WebSocket (receives CHAT_MESSAGE from authManager) ───
+const _localWsClient = createWsClient({
+  onMessage(msg) {
+    if (msg.type === 'CHAT_HISTORY' && Array.isArray(msg.payload)) msg.payload.forEach(pushMessage);
+    if (msg.type === 'CHAT_MESSAGE' && msg.payload) pushMessage(msg.payload);
+  },
+});
+function connectLocalWs() { _localWsClient.start(); }
+
+// ── Init ───────────────────────────────────────────────────────────
+async function init() {
+  cfg = await safeJson('/api/chatdeck/config');
+  applyConfig(cfg);
+  await loadPlatformStatus();
+  startPlatformStatusPolling();
+  connectLocalWs();
+  renderKeywords();
+  renderCommands();
+}
+
+function _applyPlatformStatus(status) {
+  const tw = status.twitch || {}, yt = status.youtube || {};
+  setTwitchState(!!tw.connected, tw);
+  const ytReady = !!(yt.videoId);
+  if (ytReady && !ytPolling) startYtPolling();
+  if (!ytReady && ytPolling) stopYtPolling();
+  if (!ytReady) setYtState(false, PlatformStatus.ytText(yt));
+}
+let stopPlatformPoll = null;
+function loadPlatformStatus()         { return PlatformStatus.load().then(_applyPlatformStatus).catch(() => {}); }
+function startPlatformStatusPolling() {
+  if (stopPlatformPoll) stopPlatformPoll();
+  stopPlatformPoll = PlatformStatus.poll(_applyPlatformStatus);
+  window.addEventListener('beforeunload', () => stopPlatformPoll?.());
+}
+
+function applyConfig(c) {
+  // YouTube configuration now managed centrally in Hub
+  keywords = c.keywords || [];
+  commands = c.commands || [];
+}
+
+async function saveKeywordsCommands() {
+  cfg = await safeJson('/api/chatdeck/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ keywords, commands }),
+  });
+  // Re-highlight existing messages
+  allMessages.forEach(m => applyHighlights(m));
+  renderFeed();
+}
+
+// ── Twitch IRC ─────────────────────────────────────────────────────
+// Twitch connection now managed centrally by authManager in Hub
+// Chatdeck monitors status via /api/platforms endpoint
+
+function setTwitchState(connected, tw = {}) {
+  twitchConnected = connected;
+  const pill = document.getElementById('twitch-pill');
+  const text = document.getElementById('twitch-pill-text');
+  if (connected) {
+    if (pill) pill.classList.add('connected');
+    if (text) text.textContent = tw.channel ? '#' + tw.channel : 'Twitch verbunden';
+  } else {
+    if (pill) pill.classList.remove('connected');
+    const msg = tw.oauthLoggedIn && tw.channel ? tw.channel + ' (getrennt)'
+              : tw.channel                     ? tw.channel + ' (kein OAuth)'
+              : 'Twitch getrennt';
+    if (text) text.textContent = msg;
+  }
+}
+
+// ── YouTube polling ────────────────────────────────────────────────
+function startYtPolling() {
+  stopYtPolling();
+  pollYt();
+  ytPolling = setInterval(pollYt, 6000);
+}
+
+function stopYtPolling() {
+  if (ytPolling) { clearInterval(ytPolling); ytPolling = null; }
+  setYtState(false, null);
+}
+
+async function pollYt() {
+  try {
+    const d = await safeJson('/api/chatdeck/youtube/poll');
+    if (d.error && !d.messages?.length) {
+      setYtState(false, d.error);
+      return;
+    }
+    if (d.liveChatId) setYtState(true, null);
+    // Messages arrive via WebSocket CHAT_MESSAGE broadcast — no push here to avoid duplicates.
+    // Adjust polling interval based on YouTube's recommendation (cap at 60 s to avoid long gaps).
+    if (d.pollingMs && ytPolling) {
+      clearInterval(ytPolling);
+      ytPolling = setInterval(pollYt, Math.max(Math.min(d.pollingMs, 60000), 4000));
+    }
+  } catch (e) {
+    setYtState(false, e.message);
+  }
+}
+
+function setYtState(connected, errorMsg) {
+  const pill = document.getElementById('yt-pill');
+  const text = document.getElementById('yt-pill-text');
+  if (connected) {
+    if (pill) pill.classList.add('connected');
+    if (text) text.textContent = 'YouTube live';
+  } else {
+    if (pill) pill.classList.remove('connected');
+    if (text) text.textContent = errorMsg ? `YT: ${errorMsg.slice(0, 30)}` : 'YouTube getrennt';
+  }
+}
+
+// ── Message pipeline ───────────────────────────────────────────────
+function uid() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function pushMessage(raw) {
+  if (raw?.id && allMessages.some(m => m.id === raw.id)) return;
+  const msg = {
+    id:          raw.id || uid(),
+    platform:    raw.platform,
+    authorName:  String(raw.authorName || 'Unknown'),
+    authorColor: String(raw.authorColor || '#ffffff'),
+    text:        String(raw.text || ''),
+    time:        raw.time ? new Date(raw.time) : (raw._time ? new Date(raw._time) : (raw.publishedAt ? new Date(raw.publishedAt) : new Date())),
+    highlighted: false,
+    isCommand:   false,
+    matchedColor: null,
+    matchedKeyword: null,
+    matchedCaseSensitive: false,
+  };
+  applyHighlights(msg);
+  checkCommands(msg);
+
+  const maxMsg = cfg?.display?.maxMessages || 200;
+  allMessages.push(msg);
+  if (allMessages.length > maxMsg) allMessages.splice(0, allMessages.length - maxMsg);
+
+  // Check if we should show empty placeholder
+  document.getElementById('chat-empty').style.display = 'none';
+
+  appendMessageToFeed(msg);
+}
+
+function applyHighlights(msg) {
+  msg.highlighted = false;
+  msg.matchedColor = null;
+  msg.matchedKeyword = null;
+  msg.matchedCaseSensitive = false;
+  for (const kw of keywords) {
+    const keywordText = String(kw?.text || '').trim();
+    if (!keywordText) continue;
+    const pattern = kw.caseSensitive
+      ? keywordText
+      : keywordText.toLowerCase();
+    const haystack = kw.caseSensitive ? msg.text : msg.text.toLowerCase();
+    if (haystack.includes(pattern)) {
+      msg.highlighted = true;
+      msg.matchedColor = kw.color || '#02cda4';
+      msg.matchedKeyword = keywordText;
+      msg.matchedCaseSensitive = !!kw.caseSensitive;
+      break;
+    }
+  }
+}
+
+function checkCommands(msg) {
+  const lower = String(msg.text || '').trim().toLowerCase();
+  for (const cmd of commands) {
+    if (!cmd.trigger) continue;
+    const trigger = cmd.trigger.trim().toLowerCase();
+    if (lower === trigger || lower.startsWith(trigger + ' ')) {
+      msg.isCommand = true;
+      executeCommandAction(cmd, msg);
+      break;
+    }
+  }
+}
+
+async function executeCommandAction(cmd, msg) {
+  if (!cmd.action || cmd.action === 'none') return;
+  try {
+    if (cmd.action === 'obs-scene' && cmd.actionParam) {
+      await safeJson('/api/scenepilot/scene', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scene: cmd.actionParam }),
+      });
+    } else if (cmd.action === 'timer-start') {
+      await safeJson('/api/timer/start', { method: 'POST' });
+    } else if (cmd.action === 'timer-reset') {
+      await safeJson('/api/timer/reset', { method: 'POST' });
+    } else if (cmd.action === 'trackpulse-song') {
+      await safeJson('/api/trackpulse/announce');
+    }
+  } catch (e) { console.error('command action failed', e); }
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function appendMessageToFeed(msg) {
+  const visible = isVisible(msg);
+  if (!visible) return;
+
+  const feed = document.getElementById('chat-feed');
+  const el = buildMsgEl(msg);
+  feed.appendChild(el);
+
+  if (!scrollLocked) feed.scrollTop = feed.scrollHeight;
+
+  // Update count
+  updateCount();
+}
+
+function buildMsgEl(msg) {
+  const el = document.createElement('div');
+  el.className = `chat-msg ${msg.highlighted ? 'highlighted' : ''} ${msg.isCommand ? 'command-msg' : ''}`;
+  el.dataset.id = msg.id;
+
+  const searchTerm = document.getElementById('filter-search')?.value?.toLowerCase() || '';
+
+  const timeStr = msg.time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const textHtml = highlightText(escHtml(msg.text), msg, searchTerm);
+
+  el.innerHTML = `
+    <span class="msg-platform ${msg.platform}">${msg.platform === 'twitch' ? 'TW' : 'YT'}</span>
+    <span class="msg-time">${timeStr}</span>
+    <span class="msg-author" style="color:${escHtml(msg.authorColor)}">${escHtml(msg.authorName)}</span>
+    <span class="msg-text">${textHtml}</span>
+  `;
+  return el;
+}
+
+function highlightText(escapedText, msg, searchTerm) {
+  let html = escapedText;
+  // Highlight only the actually matched keyword for this message.
+  // This keeps the render path cheap and avoids pathological regex/replacement work.
+  if (msg?.matchedKeyword) {
+    const keywordText = escHtml(msg.matchedKeyword);
+    const keywordColor = msg.matchedColor || '#02cda4';
+    const re = new RegExp(escRegex(keywordText), msg.matchedCaseSensitive ? 'g' : 'gi');
+    html = html.replace(re, m => `<mark style="background:${keywordColor}22;color:${keywordColor}">${m}</mark>`);
+  }
+  // Highlight search
+  if (searchTerm) {
+    const re = new RegExp(escRegex(escHtml(searchTerm)), 'gi');
+    html = html.replace(re, m => `<mark>${m}</mark>`);
+  }
+  return html;
+}
+
+function renderFeed() {
+  const feed = document.getElementById('chat-feed');
+  const searchTerm = document.getElementById('filter-search').value.toLowerCase();
+  const visible = allMessages.filter(isVisible);
+
+  if (visible.length === 0) {
+    feed.innerHTML = '';
+    document.getElementById('chat-empty').style.display = '';
+    feed.appendChild(document.getElementById('chat-empty'));
+    document.getElementById('chat-empty').style.display = 'flex';
+  } else {
+    document.getElementById('chat-empty').style.display = 'none';
+    feed.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    for (const msg of visible) frag.appendChild(buildMsgEl(msg));
+    feed.appendChild(frag);
+    if (!scrollLocked) feed.scrollTop = feed.scrollHeight;
+  }
+  updateCount();
+}
+
+function isVisible(msg) {
+  if (filterPlatform !== 'all' && msg.platform !== filterPlatform) return false;
+  const s = document.getElementById('filter-search')?.value?.toLowerCase() || '';
+  if (s && !msg.text.toLowerCase().includes(s) && !msg.authorName.toLowerCase().includes(s)) return false;
+  return true;
+}
+
+function updateCount() {
+  const visible = allMessages.filter(isVisible).length;
+  document.getElementById('msg-count').textContent = t('chatdeck.messages', {count: visible, total: allMessages.length});
+}
+
+function clearChat() {
+  allMessages = [];
+  renderFeed();
+}
+
+function setFilter(platform) {
+  filterPlatform = platform;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.className = 'filter-btn';
+  });
+  document.getElementById(`filter-${platform}`).classList.add(`active-${platform}`);
+  renderFeed();
+}
+
+function toggleScrollLock() {
+  scrollLocked = !scrollLocked;
+  const btn = document.getElementById('btn-scroll-lock');
+  btn.textContent = scrollLocked ? t('chatdeck.scroll_locked') : t('chatdeck.scroll_auto');
+  btn.style.color = scrollLocked ? '#ffb26b' : '';
+  if (!scrollLocked) {
+    const feed = document.getElementById('chat-feed');
+    feed.scrollTop = feed.scrollHeight;
+  }
+}
+
+// ── Keywords ───────────────────────────────────────────────────────
+function renderKeywords() {
+  const el = document.getElementById('keyword-list');
+  if (!keywords.length) {
+    el.innerHTML = '<div style="font-size:12px;color:rgba(243,249,248,0.3);text-align:center;padding:8px 0">Keine Keywords</div>';
+    return;
+  }
+  el.innerHTML = keywords.map((kw, i) => `
+    <div class="keyword-item">
+      <span class="keyword-swatch" style="background:${escHtml(kw.color)}"></span>
+      <span class="keyword-text">${escHtml(kw.text)}</span>
+      <button class="keyword-del" onclick="removeKeyword(${i})" title="Löschen">×</button>
+    </div>
+  `).join('');
+}
+
+function addKeyword() {
+  const text  = document.getElementById('new-kw-text').value.trim();
+  const color = document.getElementById('new-kw-color').value;
+  if (!text) return;
+  keywords.push({ id: uid(), text, color, caseSensitive: false });
+  document.getElementById('new-kw-text').value = '';
+  renderKeywords();
+  saveKeywordsCommands();
+}
+
+function removeKeyword(i) {
+  keywords.splice(i, 1);
+  renderKeywords();
+  saveKeywordsCommands();
+}
+
+// ── Commands ───────────────────────────────────────────────────────
+function updateCmdParamLabel() {
+  const action = document.getElementById('new-cmd-action').value;
+  const row    = document.getElementById('cmd-param-row');
+  const label  = document.getElementById('cmd-param-label');
+  const input  = document.getElementById('new-cmd-param');
+  if (action === 'obs-scene') {
+    row.style.display = ''; label.textContent = 'Szenenname'; input.placeholder = 'Szenenname';
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+function renderCommands() {
+  const el = document.getElementById('command-list');
+  if (!commands.length) {
+    el.innerHTML = '<div style="font-size:12px;color:rgba(243,249,248,0.3);text-align:center;padding:8px 0">Keine Commands</div>';
+    return;
+  }
+  const actionLabel = { none: 'Hervorheben', 'obs-scene': 'OBS Szene', 'timer-start': 'Timer Start', 'timer-reset': 'Timer Reset', 'trackpulse-song': '🎵 Now Playing' };
+  el.innerHTML = commands.map((cmd, i) => `
+    <div class="command-item">
+      <div class="command-item-row">
+        <div>
+          <div class="command-trigger">${escHtml(cmd.trigger)}</div>
+          <div class="command-desc">${actionLabel[cmd.action] || cmd.action}${cmd.actionParam ? ': ' + escHtml(cmd.actionParam) : ''}</div>
+        </div>
+        <button class="keyword-del" onclick="removeCommand(${i})" title="Löschen">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addCommand() {
+  const trigger    = document.getElementById('new-cmd-trigger').value.trim();
+  const action     = document.getElementById('new-cmd-action').value;
+  const actionParam= document.getElementById('new-cmd-param').value.trim();
+  if (!trigger) return;
+  commands.push({ id: uid(), trigger, action, actionParam });
+  document.getElementById('new-cmd-trigger').value = '';
+  document.getElementById('new-cmd-param').value   = '';
+  renderCommands();
+  saveKeywordsCommands();
+}
+
+function removeCommand(i) {
+  commands.splice(i, 1);
+  renderCommands();
+  saveKeywordsCommands();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+const escHtml = esc;
+function escRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ── OBS BrowserSource URL builder ─────────────────────────────────
+function updateObsUrl() {
+  const platform = document.getElementById('obs-platform').value;
+  const max      = document.getElementById('obs-max').value || '30';
+  const fs       = document.getElementById('obs-fs').value  || '14';
+  const bg       = document.getElementById('obs-bg').checked    ? '1' : '0';
+  const badge    = document.getElementById('obs-badge').checked ? '1' : '0';
+  const newest   = document.getElementById('obs-newest').value; // 'top' | 'bottom'
+  const font     = document.getElementById('obs-font').value;   // font key
+
+  // Persist
+  try {
+    localStorage.setItem('cd_obs', JSON.stringify({ platform, max, fs, bg, badge, newest, font }));
+  } catch (_) {}
+
+  const params = new URLSearchParams();
+  if (platform !== 'all') params.set('platform', platform);
+  if (max !== '30')       params.set('max', max);
+  if (fs  !== '14')       params.set('fs', fs);
+  if (bg  === '0')        params.set('bg', '0');
+  if (badge === '0')      params.set('badge', '0');
+  if (newest === 'top')   params.set('newest', 'top');
+  if (font !== 'archivo') params.set('font', font);
+
+  const base = `${location.protocol}//${location.host}/tool/chatdeck/overlay`;
+  const qs   = params.toString();
+  document.getElementById('obs-url-output').value = qs ? `${base}?${qs}` : base;
+}
+
+function copyObsUrl() {
+  const input = document.getElementById('obs-url-output');
+  input.select();
+  navigator.clipboard.writeText(input.value).catch(() => document.execCommand('copy'));
+  const btn = document.getElementById('btn-obs-copy');
+  btn.textContent = '✓ ' + t('toast.copied');
+  setTimeout(() => { btn.textContent = t('btn.copy'); }, 1800);
+}
+
+// ── Toggle Twitch connect shortcut ─────────────────────────────────
+function toggleTwitchConnect() {
+  window.location.href = '/';
+}
+
+// ── Start ──────────────────────────────────────────────────────────
+function restoreObsSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('cd_obs') || 'null');
+    if (!s) return;
+    if (s.platform !== undefined) document.getElementById('obs-platform').value = s.platform;
+    if (s.max      !== undefined) document.getElementById('obs-max').value       = s.max;
+    if (s.fs       !== undefined) document.getElementById('obs-fs').value        = s.fs;
+    if (s.bg       !== undefined) document.getElementById('obs-bg').checked      = s.bg !== '0';
+    if (s.badge    !== undefined) document.getElementById('obs-badge').checked   = s.badge !== '0';
+    if (s.newest   !== undefined) document.getElementById('obs-newest').value    = s.newest;
+    if (s.font     !== undefined) document.getElementById('obs-font').value      = s.font;
+  } catch (_) {}
+}
+
+restoreObsSettings();
+updateObsUrl();
+init();
+</script>
+</body>
+</html>

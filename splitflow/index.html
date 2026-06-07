@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SplitFlow — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/design.css">
+<script src="/shared/utils.js"></script>
+<script src="/shared/i18n.js"></script>
+<script src="/shared/ws-client.js"></script>
+<script src="/shared/winctrl.js" defer></script>
+<link rel="stylesheet" href="splitflow.css">
+</head>
+<body>
+
+<header class="tool-topbar">
+  <div class="tool-topbar-brand">
+    <span class="tool-topbar-name" data-i18n="splitflow.title">Split<em>Flow</em></span>
+    <span class="tool-topbar-sub" data-i18n="splitflow.subtitle">Speedrun Timer</span>
+  </div>
+  <div class="tool-topbar-status">
+    <span class="badge neutral" id="ws-topbar-badge">
+      <span class="dot" id="ws-topbar-dot" style="opacity:0.4"></span>
+      <span id="ws-topbar-text">Verbinde...</span>
+    </span>
+  </div>
+  <a class="link" href="/" data-i18n="nav.back_hub">← Hub</a>
+</header>
+
+<div id="app">
+
+<!-- ─── Center: Live Canvas ─────────────────────────────────────────────── -->
+<div id="sf-canvas">
+
+  <!-- Overlay preview -->
+  <div class="preview-canvas" id="appearance-canvas">
+    <div class="preview-viewport" id="appearance-viewport" style="width:250px">
+      <iframe id="appearance-preview" src="/tool/splitflow/overlay" height="520" scrolling="no" title="Appearance Live Preview"></iframe>
+    </div>
+  </div>
+
+  <!-- Footer: viewport + controls + zoom + actions -->
+  <div class="preview-footer">
+    <span class="dim-label mono">Viewport: <span id="appearance-dim">250 x 534</span></span>
+    <div class="ctrl-btns" style="flex:1;justify-content:center">
+      <button class="ctrl-btn primary" id="ctrl-start" onclick="timerAction('start')">
+        <svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2.5l6 3.5-6 3.5z"/></svg>
+        <span data-i18n="splitflow.controls.start">Start</span>
+      </button>
+      <button class="ctrl-btn" onclick="timerAction('pause')">
+        <svg viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="2" width="3" height="8" rx="0.8"/><rect x="7" y="2" width="3" height="8" rx="0.8"/></svg>
+        <span data-i18n="splitflow.controls.pause">Pause</span>
+      </button>
+      <button class="ctrl-btn" onclick="timerAction('undo')">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5h5a3 3 0 1 1 0 6H5"/><path d="M2 5L4.5 2.5M2 5l2.5 2.5"/></svg>
+        <span data-i18n="splitflow.controls.undo">Undo</span>
+      </button>
+      <button class="ctrl-btn" onclick="timerAction('skip')">
+        <svg viewBox="0 0 12 12" fill="currentColor"><path d="M2 3l5 3-5 3z"/><rect x="8.5" y="3" width="1.5" height="6" rx="0.5"/></svg>
+        <span data-i18n="splitflow.controls.skip">Skip</span>
+      </button>
+      <button class="ctrl-btn danger" onclick="timerAction('reset')">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6a4 4 0 1 0 .75-2.35"/><path d="M2 2.5V6h3.5"/></svg>
+        <span data-i18n="splitflow.controls.reset">Reset</span>
+      </button>
+    </div>
+    <div class="ctrl-btns" style="flex-shrink:0">
+      <label style="display:flex;align-items:center;gap:5px;padding:0 4px">
+        <input type="range" min="60" max="130" value="130" id="s-preview-zoom" oninput="setAppearanceZoom(+this.value)" style="width:58px;height:4px">
+        <span class="mono" id="s-preview-zoom-val" style="font-size:10px;min-width:28px;color:var(--ts)">130%</span>
+      </label>
+      <button class="ctrl-btn" onclick="reloadAppearancePreview()" data-i18n-attr="title" data-i18n="splitflow.reload" title="Reload">⟳</button>
+      <button class="ctrl-btn" onclick="openOverlayInBrowser()" data-i18n-attr="title" data-i18n="splitflow.open_browser" title="Open in browser">↗</button>
+      <span class="sync-dot" id="preview-sync-dot" style="margin-left:2px"></span>
+    </div>
+  </div>
+
+</div><!-- #sf-canvas -->
+
+<!-- ─── Right: Settings panels ───────────────────────────────────────────── -->
+<div id="sf-opts">
+
+  <!-- Tab bar -->
+  <div class="panel-tabs">
+    <button class="panel-tab active" data-panel="splits" data-i18n="splitflow.panel.splits">Profile &amp; Splits</button>
+    <button class="panel-tab" data-panel="appearance" data-i18n="splitflow.panel.appearance">Erscheinungsbild</button>
+  </div>
+
+  <!-- Panel: Splits & Profile ─────────────────────────────────────────── -->
+  <div id="panel-splits" class="panel active">
+    <div>
+      <div class="panel-title" data-i18n="splitflow.panel.splits">Profile &amp; Splits</div>
+      <div class="panel-subtitle">Erstelle ein Profil für dein Spiel, definiere die Splits und lade es in den Timer</div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:0" data-i18n="splitflow.profile.label">Profil</div>
+        <button class="btn sm" onclick="newProfile()">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v10M2 7h10"/></svg>
+          <span data-i18n="splitflow.profile.new">Neues Profil</span>
+        </button>
+      </div>
+      <div class="profile-selector-row">
+        <select id="profile-select" onchange="onProfileSelect()">
+          <option value="" data-i18n="splitflow.profile.select">— Profil wählen —</option>
+        </select>
+        <span class="active-badge" id="active-badge" style="display:none" data-i18n="splitflow.profile.active">Aktiv</span>
+        <button class="btn icon-btn danger" id="btn-delete-profile" onclick="deleteProfile()" style="display:none" title="Profil löschen">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 3.5h9M5.5 3.5V2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1.5M3.5 3.5l.5 8.5h6l.5-8.5"/>
+          </svg>
+        </button>
+      </div>
+      <div class="field-row">
+        <div>
+          <div class="field-label" data-i18n="splitflow.game_name">Spielname</div>
+          <div class="field-sub" data-i18n="splitflow.game_name.help">Name des Spiels, das du speedrunst</div>
+        </div>
+        <input type="text" id="f-game" data-i18n-placeholder="splitflow.game_name.ph" placeholder="z.B. Super Mario 64">
+      </div>
+      <div class="field-row">
+        <div>
+          <div class="field-label" data-i18n="splitflow.category">Kategorie</div>
+          <div class="field-sub" data-i18n="splitflow.category.help">z.B. Any%, 100%, Glitchless</div>
+        </div>
+        <input type="text" id="f-category" data-i18n-placeholder="splitflow.category.ph" placeholder="z.B. Any%">
+      </div>
+      <div class="profile-actions">
+        <button class="btn sm" onclick="importLSS()">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5"/><path d="M2 11h10"/></svg>
+          <span data-i18n="splitflow.import_lss">LSS importieren</span>
+        </button>
+        <div class="spacer"></div>
+        <button class="btn sm primary" onclick="loadProfileIntoTimer()" id="btn-load-timer" disabled>
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor"><path d="M3 2l9 5-9 5z"/></svg>
+          <span data-i18n="splitflow.load_timer">In Timer laden</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <span>
+          <span class="card-title" style="margin-bottom:0" data-i18n="splitflow.splits.title">Splits</span>
+          <div style="font-size:11px;color:var(--ts);margin-top:3px" data-i18n="splitflow.splits.help">Abschnitte deines Runs — jeder Split wird beim Drücken des Hotkeys abgeschlossen</div>
+        </span>
+        <div class="btn-row">
+          <button class="btn sm" onclick="addSplit()" data-i18n="splitflow.splits.add">+ Hinzufügen</button>
+          <button class="btn sm danger" onclick="clearSplits()" data-i18n="splitflow.splits.clear">Leeren</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="splits-table" id="splits-table">
+          <thead>
+            <tr>
+              <th style="width:24px"></th>
+              <th>Name</th>
+              <th style="width:110px" data-i18n="splitflow.splits.pb">Bestzeit (s)</th>
+              <th style="width:110px" data-i18n="splitflow.splits.gold">Goldzeit (s)</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="splits-tbody">
+            <tr class="empty-state-row" id="splits-empty-row"><td colspan="5" data-i18n="splitflow.splits.empty">Noch keine Splits — klicke + Hinzufügen oder importiere eine LSS-Datei</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="splits-footer">
+        <span class="muted" id="splits-summary"></span>
+        <div class="btn-row">
+          <button class="btn sm" onclick="exportLSS()" data-i18n="splitflow.export_lss">LSS exportieren</button>
+          <button class="btn sm" onclick="exportProfileJSON()" id="btn-export-json" data-i18n="splitflow.export_json">JSON exportieren</button>
+          <button class="btn sm primary" id="btn-save-profile" onclick="saveProfile()" data-i18n="btn.save">Speichern</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel: Appearance ──────────────────────────────────────────────── -->
+  <div id="panel-appearance" class="panel">
+    <div>
+      <div class="panel-title" data-i18n="splitflow.appearance.title">Erscheinungsbild</div>
+      <div class="panel-subtitle" data-i18n="splitflow.appearance.subtitle">Designer-Workspace mit integrierter Live-Canvas: style das Overlay im Kontext</div>
+    </div>
+
+    <div class="appearance-stack">
+        <div class="card designer-card">
+          <div class="designer-header">
+            <div>
+              <div class="designer-title" data-i18n="splitflow.theme.title">Theme</div>
+              <div class="designer-sub" data-i18n="splitflow.theme.subtitle">Preset wählen und anschließend feinjustieren</div>
+            </div>
+            <div class="quick-actions">
+              <button class="btn sm" onclick="resetAppearanceDefaults()" data-i18n="splitflow.theme.defaults">Defaults</button>
+            </div>
+          </div>
+          <div class="theme-grid enhanced" id="theme-grid">
+            <div class="theme-chip active" data-theme="dark">
+              <div class="theme-head"><span class="theme-name">Dark</span></div>
+              <div class="theme-thumb dark"></div>
+              <div class="theme-dots">
+                <span class="theme-dot" style="background:#fff"></span>
+                <span class="theme-dot" style="background:#4fc97a"></span>
+                <span class="theme-dot" style="background:#e05555"></span>
+                <span class="theme-dot" style="background:#f0c040"></span>
+              </div>
+              <span class="chip-note">neutral</span>
+            </div>
+            <div class="theme-chip" data-theme="midnight">
+              <div class="theme-head"><span class="theme-name">Midnight</span></div>
+              <div class="theme-thumb midnight"></div>
+              <div class="theme-dots">
+                <span class="theme-dot" style="background:#d0ccf8"></span>
+                <span class="theme-dot" style="background:#74c6f5"></span>
+                <span class="theme-dot" style="background:#f07070"></span>
+                <span class="theme-dot" style="background:#ffd060"></span>
+              </div>
+              <span class="chip-note">sättig</span>
+            </div>
+            <div class="theme-chip" data-theme="clean">
+              <div class="theme-head"><span class="theme-name">Clean</span></div>
+              <div class="theme-thumb clean"></div>
+              <div class="theme-dots">
+                <span class="theme-dot" style="background:#111;border-color:rgba(0,0,0,0.2)"></span>
+                <span class="theme-dot" style="background:#1e9e55;border-color:rgba(0,0,0,0.2)"></span>
+                <span class="theme-dot" style="background:#c03030;border-color:rgba(0,0,0,0.2)"></span>
+                <span class="theme-dot" style="background:#b08000;border-color:rgba(0,0,0,0.2)"></span>
+              </div>
+              <span class="chip-note">hell</span>
+            </div>
+            <div class="theme-chip" data-theme="neon">
+              <div class="theme-head"><span class="theme-name">Neon</span></div>
+              <div class="theme-thumb neon"></div>
+              <div class="theme-dots">
+                <span class="theme-dot" style="background:#00ffcc;box-shadow:0 0 4px #00ffcc88"></span>
+                <span class="theme-dot" style="background:#00ff88;box-shadow:0 0 4px #00ff8888"></span>
+                <span class="theme-dot" style="background:#ff3366;box-shadow:0 0 4px #ff336688"></span>
+                <span class="theme-dot" style="background:#ffcc00;box-shadow:0 0 4px #ffcc0088"></span>
+              </div>
+              <span class="chip-note">retro</span>
+            </div>
+            <div class="theme-chip" data-theme="custom">
+              <div class="theme-head"><span class="theme-name">Custom</span></div>
+              <div class="theme-thumb custom"></div>
+              <div class="theme-dots">
+                <span class="theme-dot" style="background:var(--acc2)"></span>
+                <span class="theme-dot" style="background:var(--acc)"></span>
+                <span class="theme-dot" style="background:var(--ts)"></span>
+                <span class="theme-dot" style="background:var(--acc4)"></span>
+              </div>
+              <span class="chip-note">frei</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card designer-card">
+          <div class="designer-header">
+            <div>
+              <div class="designer-title" data-i18n="splitflow.layout.title">Layout &amp; Lesbarkeit</div>
+              <div class="designer-sub" data-i18n="splitflow.layout.subtitle">Breite, Typografie und Dichte direkt anpassen</div>
+            </div>
+          </div>
+          <div class="preset-row">
+            <button class="preset-btn" onclick="applyAppearancePreset('compact')">Compact<br><span class="muted">mehr Splits sichtbar</span></button>
+            <button class="preset-btn" onclick="applyAppearancePreset('balanced')">Balanced<br><span class="muted">allround Standard</span></button>
+            <button class="preset-btn" onclick="applyAppearancePreset('focus')">Focus<br><span class="muted">größerer Timer</span></button>
+          </div>
+          <div class="designer-grid-2">
+            <div class="field-block">
+              <label class="field-label" data-i18n="splitflow.width">Breite</label>
+              <div class="range-row">
+                <input type="range" min="200" max="500" value="280" id="s-width" oninput="saveSettingDebounced('overlay.width', +this.value); document.getElementById('s-width-val').textContent=this.value+'px'; syncAppearancePreview()">
+                <span class="range-val" id="s-width-val">280px</span>
+              </div>
+            </div>
+            <div class="field-block">
+              <label class="field-label" data-i18n="splitflow.height">Höhe</label>
+              <div class="range-row">
+                <input type="range" min="100" max="800" value="500" id="s-height" oninput="saveSettingDebounced('overlay.height', +this.value); document.getElementById('s-height-val').textContent=this.value+'px'; syncAppearancePreview()">
+                <span class="range-val" id="s-height-val">500px</span>
+              </div>
+            </div>
+            <div class="field-block">
+              <label class="field-label" data-i18n="splitflow.timer_font_size">Timer Schriftgröße</label>
+              <div class="range-row">
+                <input type="range" min="20" max="64" value="36" id="s-font" oninput="saveSettingDebounced('overlay.timerFontSize', +this.value); document.getElementById('s-font-val').textContent=this.value+'px'; syncAppearancePreview()">
+                <span class="range-val" id="s-font-val">36px</span>
+              </div>
+            </div>
+            <div class="field-block">
+              <label class="field-label" data-i18n="splitflow.ui_scale">UI Skalierung (OBS)</label>
+              <div class="range-row">
+                <input type="range" min="80" max="220" value="100" id="s-scale" oninput="saveSettingDebounced('overlay.uiScale', this.value/100); document.getElementById('s-scale-val').textContent=this.value+'%'; syncAppearancePreview()">
+                <span class="range-val" id="s-scale-val">100%</span>
+              </div>
+            </div>
+            <div class="field-block">
+              <label class="field-label" data-i18n="splitflow.opacity">Transparenz</label>
+              <div class="range-row">
+                <input type="range" min="0" max="100" value="92" id="s-opacity" oninput="saveSettingDebounced('overlay.opacity', this.value/100); document.getElementById('s-opacity-val').textContent=this.value+'%'; syncAppearancePreview()">
+                <span class="range-val" id="s-opacity-val">92%</span>
+              </div>
+            </div>
+            <div class="field-block">
+              <label class="field-label" for="s-maxsplits" data-i18n="splitflow.max_splits">Max. Splits sichtbar</label>
+              <input type="number" id="s-maxsplits" value="10" min="3" max="30" style="width:100%" onchange="saveSettingDebounced('overlay.maxVisibleSplits', +this.value, 120); syncAppearancePreview()">
+            </div>
+            <div class="field-block">
+              <label class="field-label" for="s-timerpos" data-i18n="splitflow.timer_pos">Timer Position</label>
+              <select id="s-timerpos" style="width:100%" onchange="saveSettingDebounced('overlay.timerPosition', this.value, 80); syncAppearancePreview()">
+                <option value="bottom" data-i18n="splitflow.timer_pos.bottom">Unten</option>
+                <option value="top" data-i18n="splitflow.timer_pos.top">Oben</option>
+              </select>
+            </div>
+            <div class="field-block">
+              <label class="field-label" for="s-comparison" data-i18n="splitflow.comparison">Vergleich</label>
+              <select id="s-comparison" style="width:100%" onchange="saveSettingDebounced('overlay.showComparison', this.value, 80); syncAppearancePreview()">
+                <option value="pb" data-i18n="splitflow.comparison.pb">Personal Best</option>
+                <option value="sob" data-i18n="splitflow.comparison.sob">Sum of Best</option>
+                <option value="wr" data-i18n="splitflow.comparison.wr">Weltrekord (manuell)</option>
+                <option value="none" data-i18n="splitflow.comparison.none">Kein Vergleich</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card designer-card">
+          <div class="designer-header">
+            <div>
+              <div class="designer-title" data-i18n="splitflow.display_opts">Anzeige Optionen</div>
+              <div class="designer-sub" data-i18n="splitflow.display_opts.sub">Was im Overlay tatsächlich sichtbar ist</div>
+            </div>
+          </div>
+          <div class="toggle-grid">
+            <label class="toggle-item"><span class="field-label" data-i18n="splitflow.simple_mode">Simple Timer Modus</span><input type="checkbox" id="s-simplemode" onchange="handleSimpleModeToggle(this.checked)"></label>
+            <label class="toggle-item" id="tg-showgold"><span class="field-label" data-i18n="splitflow.gold_splits">Gold-Splits</span><input type="checkbox" id="s-showgold" checked onchange="saveSettingDebounced('overlay.showGoldSplits', this.checked, 80); syncAppearancePreview()"></label>
+            <label class="toggle-item" id="tg-showattempts"><span class="field-label" data-i18n="splitflow.attempts">Versuchsanzahl</span><input type="checkbox" id="s-showattempts" checked onchange="saveSettingDebounced('overlay.showAttempts', this.checked, 80); syncAppearancePreview()"></label>
+            <label class="toggle-item" id="tg-showsob"><span class="field-label" data-i18n="splitflow.sob_row">Sum of Best</span><input type="checkbox" id="s-showsob" checked onchange="saveSettingDebounced('overlay.showSobRow', this.checked, 80); syncAppearancePreview()"></label>
+            <label class="toggle-item"><span class="field-label" data-i18n="splitflow.transparent_bg">Transparenter Hintergrund</span><input type="checkbox" id="s-stage-transparent" onchange="togglePreviewTransparency(this.checked)"></label>
+          </div>
+          <div class="muted" id="simplemode-note" style="margin-top:8px;display:none">Simple Timer Modus blendet Splits, Footer, Deltas und Zusatzinfos aus. Sichtbar bleibt nur der reine Timer.</div>
+        </div>
+
+        <div class="card designer-card" id="color-card">
+          <div class="designer-header">
+            <div>
+              <div class="designer-title" data-i18n="splitflow.colors">Farben</div>
+              <div class="designer-sub" id="color-card-hint" data-i18n="splitflow.colors.sub">Nur bei Theme "Custom" aktiv</div>
+            </div>
+            <button class="btn sm" onclick="applyThemePaletteToCustom()" data-i18n="splitflow.colors.load_preset">Preset in Custom laden</button>
+          </div>
+          <div class="color-grid" id="color-grid">
+            <div class="color-row"><div class="color-label" data-i18n="splitflow.bg">Hintergrund</div><div class="color-inputs"><input type="color" id="c-background" value="#0f0f14" oninput="saveColorWithAlpha('background')"><input type="range" class="alpha-slider" min="0" max="100" value="92" id="ca-background" oninput="document.getElementById('cav-background').textContent=this.value+'%';saveColorWithAlpha('background')"><span class="alpha-val" id="cav-background">92%</span></div></div>
+            <div class="color-row"><div class="color-label" data-i18n="splitflow.timer_text">Timer-Text</div><div class="color-inputs"><input type="color" id="c-timerText" value="#ffffff" oninput="saveColorWithAlpha('timerText')"><input type="range" class="alpha-slider" min="0" max="100" value="100" id="ca-timerText" oninput="document.getElementById('cav-timerText').textContent=this.value+'%';saveColorWithAlpha('timerText')"><span class="alpha-val" id="cav-timerText">100%</span></div></div>
+            <div class="color-row"><div class="color-label" data-i18n="splitflow.split_text">Split-Text</div><div class="color-inputs"><input type="color" id="c-splitText" value="#e8e8e8" oninput="saveColorWithAlpha('splitText')"><input type="range" class="alpha-slider" min="0" max="100" value="100" id="ca-splitText" oninput="document.getElementById('cav-splitText').textContent=this.value+'%';saveColorWithAlpha('splitText')"><span class="alpha-val" id="cav-splitText">100%</span></div></div>
+            <div class="color-row"><div class="color-label" data-i18n="splitflow.muted_text">Muted Text</div><div class="color-inputs"><input type="color" id="c-mutedText" value="#888888" oninput="saveColorWithAlpha('mutedText')"><input type="range" class="alpha-slider" min="0" max="100" value="100" id="ca-mutedText" oninput="document.getElementById('cav-mutedText').textContent=this.value+'%';saveColorWithAlpha('mutedText')"><span class="alpha-val" id="cav-mutedText">100%</span></div></div>
+            <div class="color-row"><div class="color-label" data-i18n="splitflow.ahead">Ahead</div><div class="color-inputs"><input type="color" id="c-ahead" value="#4fc97a" oninput="saveColorWithAlpha('ahead')"><input type="range" class="alpha-slider" min="0" max="100" value="100" id="ca-ahead" oninput="document.getElementById('cav-ahead').textContent=this.value+'%';saveColorWithAlpha('ahead')"><span class="alpha-val" id="cav-ahead">100%</span></div></div>
+            <div class="color-row"><div class="color-label" data-i18n="splitflow.behind">Behind</div><div class="color-inputs"><input type="color" id="c-behind" value="#e05555" oninput="saveColorWithAlpha('behind')"><input type="range" class="alpha-slider" min="0" max="100" value="100" id="ca-behind" oninput="document.getElementById('cav-behind').textContent=this.value+'%';saveColorWithAlpha('behind')"><span class="alpha-val" id="cav-behind">100%</span></div></div>
+            <div class="color-row"><div class="color-label" data-i18n="splitflow.gold">Gold</div><div class="color-inputs"><input type="color" id="c-gold" value="#f0c040" oninput="saveColorWithAlpha('gold')"><input type="range" class="alpha-slider" min="0" max="100" value="100" id="ca-gold" oninput="document.getElementById('cav-gold').textContent=this.value+'%';saveColorWithAlpha('gold')"><span class="alpha-val" id="cav-gold">100%</span></div></div>
+            <div class="color-row"><div class="color-label" data-i18n="splitflow.accent">Akzentfarbe</div><div class="color-inputs"><input type="color" id="c-accent" value="#7c6ef0" oninput="saveColorWithAlpha('accent')"><input type="range" class="alpha-slider" min="0" max="100" value="100" id="ca-accent" oninput="document.getElementById('cav-accent').textContent=this.value+'%';saveColorWithAlpha('accent')"><span class="alpha-val" id="cav-accent">100%</span></div></div>
+          </div>
+        </div>
+
+        <div class="card designer-card">
+          <div class="designer-header">
+            <div>
+              <div class="designer-title" data-i18n="splitflow.custom_css">Custom CSS</div>
+              <div class="designer-sub" data-i18n="splitflow.custom_css.sub">Direkte Live-Injektion in die Overlay Runtime</div>
+            </div>
+          </div>
+          <textarea id="s-customcss" placeholder="/* Eigenes CSS für das Overlay */" oninput="saveSettingDebounced('overlay.customCSS', this.value, 280)"></textarea>
+          <div class="muted" style="margin-top:8px" data-i18n="splitflow.custom_css.hint">Variablen: --bg, --tf, --ts, --ahead, --behind, --gold, --acc</div>
+        </div>
+    </div>
+  </div>
+
+</div><!-- #sf-opts -->
+
+</div><!-- #app -->
+
+<div id="toast"></div>
+
+
+<script src="splitflow.js"></script>
+</body>
+</html>

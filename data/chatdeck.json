@@ -1,0 +1,28 @@
+{
+  "twitch": {
+    "enabled": true,
+    "channel": "amarok7777"
+  },
+  "youtube": {
+    "enabled": false,
+    "apiKey": "",
+    "videoId": "",
+    "channelInput": "Amarok7777",
+    "noApiKey": true
+  },
+  "keywords": [
+    {
+      "id": "mormvx9m-i0twpq",
+      "text": "test",
+      "color": "#02cda4",
+      "caseSensitive": false
+    }
+  ],
+  "commands": [],
+  "display": {
+    "maxMessages": 200,
+    "showTimestamp": true,
+    "twitchColor": "#9146ff",
+    "youtubeColor": "#ff4040"
+  }
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrackPulse Overlay</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #f3f9f8;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 16px;
+}
+
+/* ── Now-Playing card ── */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(6, 12, 16, 0.82);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px 14px 10px 10px;
+  backdrop-filter: blur(12px);
+  max-width: 420px;
+  width: 100%;
+  transition: opacity .4s ease;
+}
+
+.card.hidden { opacity: 0; pointer-events: none; }
+
+/* Album art */
+.art {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(2,205,164,0.3), rgba(255,149,64,0.3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  overflow: hidden;
+}
+.art img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+
+/* Text */
+.info { flex: 1; min-width: 0; }
+.label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(2,205,164,0.85);
+  margin-bottom: 3px;
+}
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f3f9f8;
+  line-height: 1.2;
+}
+.artist {
+  font-size: 12px;
+  color: rgba(243,249,248,0.62);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* Progress bar */
+.progress-wrap {
+  margin-top: 7px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 999px;
+  height: 3px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #02cda4, #30e8be);
+  border-radius: 999px;
+  width: 0%;
+  transition: width .8s linear;
+}
+
+/* ── Song Announce banner ── */
+.announce {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-80px);
+  background: rgba(2,205,164,0.18);
+  border: 1px solid rgba(2,205,164,0.5);
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #52f3c8;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+.announce.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+</style>
+</head>
+<body>
+
+<div class="card hidden" id="card">
+  <div class="art" id="art">🎵</div>
+  <div class="info">
+    <div class="label">Now Playing</div>
+    <div class="title" id="title">—</div>
+    <div class="artist" id="artist"></div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress"></div>
+    </div>
+  </div>
+</div>
+
+<div class="announce" id="announce"></div>
+
+<script src="/shared/utils.js"></script>
+<script>
+const card     = document.getElementById('card');
+const artEl    = document.getElementById('art');
+const titleEl  = document.getElementById('title');
+const artistEl = document.getElementById('artist');
+const progEl   = document.getElementById('progress');
+const announceEl = document.getElementById('announce');
+
+let announceTimer = null;
+
+function applyStatus(s) {
+  const t = s?.currentTrack || {};
+  const p = s?.player || {};
+  const playing = p.state === 'playing' || p.state === 'paused';
+
+  card.classList.toggle('hidden', !playing || !t.title);
+
+  if (playing && t.title) {
+    titleEl.textContent  = t.title  || '—';
+    artistEl.textContent = t.artist || '';
+
+    if (t.coverArt) {
+      artEl.innerHTML = `<img src="${t.coverArt}" alt="cover">`;
+    } else {
+      artEl.innerHTML = '🎵';
+    }
+
+    const dur = p.mediaDuration || 0;
+    const cur = p.mediaCursor   || 0;
+    progEl.style.width = dur > 0 ? `${Math.min(100, (cur / dur) * 100).toFixed(1)}%` : '0%';
+  }
+}
+
+function showAnnounce(text) {
+  announceEl.textContent = `🎵 ${text}`;
+  announceEl.classList.add('show');
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => announceEl.classList.remove('show'), 5000);
+}
+
+// WebSocket
+function connect() {
+  const ws = new WebSocket(`ws://${location.host}`);
+  ws.addEventListener('message', e => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'TRACKPULSE_STATUS' && msg.payload) applyStatus(msg.payload);
+      if (msg.type === 'TRACKPULSE_ANNOUNCE' && msg.payload?.text) showAnnounce(msg.payload.text);
+    } catch {}
+  });
+  ws.addEventListener('close', () => setTimeout(connect, 2000));
+}
+
+// Initial state
+safeJson('/api/trackpulse/status').then(applyStatus).catch(() => {});
+connect();
+</script>
+</body>
+</html>

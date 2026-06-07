@@ -1,0 +1,535 @@
+/*
+ * CastCore – Shared Design System
+ * Import via: <link rel="stylesheet" href="/shared/design.css">
+ * Fonts must be loaded in each page's <head> (preconnect + Google Fonts link).
+ * Tool-specific <style> blocks override by being later in the cascade.
+ */
+
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Design Tokens ─────────────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg:         #060c10;
+  --bg1:        #0a1218;
+  --bg2:        #0c1820;
+  --bg3:        #0f1e28;
+  --card-bg:    rgba(7, 16, 22, 0.72);
+
+  /* Text */
+  --text:       #f3f9f8;
+  --text-m:     rgba(243, 249, 248, 0.65);
+  --text-s:     rgba(243, 249, 248, 0.42);
+
+  /* Accent (teal) */
+  --acc:        #02cda4;
+  --acc2:       #30e8be;
+  --acc-bg:     rgba(2, 205, 164, 0.13);
+  --acc-border: rgba(61, 245, 194, 0.45);
+
+  /* Semantic */
+  --warn:       #ffb26b;
+  --warn-bg:    rgba(255, 178, 107, 0.12);
+  --warn-border:rgba(255, 178, 107, 0.38);
+  --danger:     #e04848;
+  --danger-bg:  rgba(224, 72, 72, 0.12);
+  --danger-border: rgba(224, 72, 72, 0.38);
+  --ok:         #52f3c8;
+  --ok-bg:      rgba(61, 245, 194, 0.13);
+  --ok-border:  rgba(61, 245, 194, 0.45);
+
+  /* Platforms */
+  --twitch:     #9146ff;
+  --youtube:    #ff4040;
+
+  /* Borders */
+  --border:     rgba(255, 255, 255, 0.12);
+  --border-s:   rgba(255, 255, 255, 0.07);
+  --border-m:   rgba(255, 255, 255, 0.20);
+  --border-focus: rgba(52, 244, 197, 0.78);
+
+  /* Radius */
+  --r-xs:  5px;
+  --r-sm:  8px;
+  --r:     10px;
+  --r-md:  12px;
+  --r-lg:  14px;
+  --r-xl:  20px;
+  --r-pill:999px;
+
+  /* Typography */
+  --font:  'Archivo', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', monospace;
+
+  /* Transitions */
+  --t-fast: 0.10s ease;
+  --t-base: 0.15s ease;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+html {
+  height: 100%;
+  background: var(--bg);
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1100px 700px at 8% -8%,  rgba(34, 216, 181, 0.18), transparent 58%),
+    radial-gradient(900px  650px at 104% 12%, rgba(255, 149, 64,  0.18), transparent 55%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg1) 100%);
+  background-attachment: fixed;
+}
+
+/* ── Scrollbars ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 4px; height: 4px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: rgba(255,255,255,0.14); border-radius: var(--r-pill); }
+::-webkit-scrollbar-thumb:hover  { background: rgba(255,255,255,0.24); }
+
+/* ── Page container ─────────────────────────────────────────────────────── */
+.app {
+  width: min(1200px, 94vw);
+  margin: 20px auto 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Tool top bar ───────────────────────────────────────────────────────── */
+/*
+ * Shared header used by all tools.
+ * Place directly inside <body>, before .app.
+ * Structure: .tool-topbar > .tool-topbar-brand + .tool-topbar-status + .link
+ */
+.tool-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* right padding reserves space for the native title-bar overlay buttons (~138 px on Windows) */
+  padding: 0 150px 0 20px;
+  height: 48px;
+  flex-shrink: 0;
+  /* solid #060c10 so the OS-painted titleBarOverlay zone is indistinguishable */
+  background: #060c10;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  -webkit-app-region: drag;
+}
+
+.tool-topbar a,
+.tool-topbar button,
+.tool-topbar input,
+.tool-topbar select {
+  -webkit-app-region: no-drag;
+}
+
+.tool-topbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tool-topbar-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.tool-topbar-name em {
+  font-style: normal;
+  color: var(--acc2);
+}
+
+.tool-topbar-sub {
+  font-size: 11px;
+  color: var(--text-s);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Shared toast (shared/toast.js) ────────────────────────────────────── */
+.shared-toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: rgba(6,12,16,.97); border: 1px solid var(--border-m);
+  border-radius: var(--r); color: var(--text);
+  font-size: 12px; font-weight: 500; padding: 9px 20px;
+  opacity: 0; transition: opacity .15s, transform .15s;
+  pointer-events: none; z-index: 9999; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px;
+}
+.shared-toast--visible    { opacity: 1; transform: translateX(-50%) translateY(0); }
+.shared-toast--ok         { border-color: var(--ok-border);      color: var(--ok); }
+.shared-toast--warn       { border-color: var(--warn-border);    color: var(--warn); }
+.shared-toast--error      { border-color: var(--danger-border);  color: #ffaaaa; }
+
+/* ── Hero header (legacy – kept for backward compat) ───────────────────── */
+.hero {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--r-xl);
+  padding: 18px 20px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+}
+
+.hero-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.hero-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-s);
+  margin-bottom: 4px;
+}
+
+.hero h1, h1 {
+  font-size: clamp(26px, 3.5vw, 48px);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.tag {
+  margin-top: 6px;
+  color: var(--text-m);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  background: var(--card-bg);
+}
+
+.card-head, .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* Small uppercase section title inside a card */
+.card-title, .card h2, .section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-m);
+}
+
+/* ── Grid layouts ───────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr;       gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr;   gap: 12px; }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-m);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: var(--r);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--t-fast), border-color var(--t-fast), filter var(--t-fast);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.btn:hover        { background: rgba(255, 255, 255, 0.14); }
+.btn:active       { background: rgba(255, 255, 255, 0.18); }
+.btn:focus-visible{ outline: 2px solid rgba(82, 243, 200, 0.85); outline-offset: 2px; }
+.btn[disabled], .btn:disabled { opacity: 0.45; pointer-events: none; }
+
+.btn.primary {
+  background: linear-gradient(130deg, var(--acc), var(--acc2));
+  color: #062119;
+  border-color: transparent;
+}
+.btn.primary:hover { filter: brightness(1.08); }
+
+.btn.warn {
+  color: var(--warn);
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+}
+.btn.warn:hover { background: rgba(255, 178, 107, 0.20); }
+
+.btn.danger {
+  color: #ffaaaa;
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+.btn.danger:hover { background: rgba(224, 72, 72, 0.20); }
+
+.btn.ghost { background: transparent; border-color: var(--border); }
+.btn.ghost:hover { background: rgba(255, 255, 255, 0.07); }
+
+.btn.sm  { font-size: 11px; padding: 5px 9px; }
+.btn.xs  { font-size: 10px; padding: 3px 7px; border-radius: var(--r-sm); }
+.btn.icon { padding: 7px 9px; }
+.btn svg { display: block; flex-shrink: 0; }
+
+/* Back / nav link */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  color: var(--acc2);
+  border: 1px solid rgba(167, 255, 240, 0.38);
+  border-radius: var(--r);
+  font-size: 12px;
+  padding: 7px 11px;
+  white-space: nowrap;
+  transition: background var(--t-fast);
+}
+.link:hover { background: rgba(167, 255, 240, 0.07); }
+
+/* ── Form elements ──────────────────────────────────────────────────────── */
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-s);
+}
+
+input[type=text],
+input[type=password],
+input[type=number],
+input[type=email],
+input[type=url],
+select,
+textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-m);
+  border-radius: var(--r);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 9px 10px;
+  outline: none;
+  transition: border-color var(--t-fast);
+}
+input[type=number] { font-family: var(--mono); }
+textarea           { resize: vertical; min-height: 60px; }
+select             { background-color: var(--bg2); color-scheme: dark; }
+select option      { background: var(--bg1); }
+
+input[type=text]:focus,
+input[type=password]:focus,
+input[type=number]:focus,
+input[type=email]:focus,
+input[type=url]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--border-focus);
+}
+
+.input-error {
+  border-color: rgba(255, 96, 96, 0.95) !important;
+  box-shadow: 0 0 0 1px rgba(255, 96, 96, 0.55), 0 0 14px rgba(255, 64, 64, 0.22);
+}
+
+/* Field helper text */
+.field-help {
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--text-s);
+  line-height: 1.5;
+}
+
+/* ── Badges / Pills ─────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-radius: var(--r-pill);
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge.ok, .badge.ready, .badge.running, .badge.connected {
+  color: var(--ok);
+  border-color: var(--ok-border);
+  background: var(--ok-bg);
+}
+.badge.warn, .badge.stopped, .badge.soon {
+  color: var(--warn);
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+}
+.badge.error, .badge.danger {
+  color: #ff9090;
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+.badge.neutral {
+  color: var(--text-m);
+  border-color: var(--border);
+  background: rgba(255,255,255,0.05);
+}
+
+/* Status dot */
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* Platform pills */
+.pill-tw {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; border-radius: var(--r-pill);
+  padding: 3px 9px; border: 1px solid rgba(145,70,255,0.35);
+  color: #c9a0ff; background: rgba(145,70,255,0.10);
+}
+.pill-yt {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; border-radius: var(--r-pill);
+  padding: 3px 9px; border: 1px solid rgba(255,64,64,0.35);
+  color: #ff9090; background: rgba(255,64,64,0.10);
+}
+
+/* ── Layout helpers ─────────────────────────────────────────────────────── */
+.actions, .row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.actions.right, .row.right { justify-content: flex-end; }
+.actions.between, .row.between { justify-content: space-between; }
+.spacer { flex: 1; }
+
+/* Divider */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 10px 0;
+}
+
+/* ── Toggle switch ──────────────────────────────────────────────────────── */
+.toggle {
+  appearance: none;
+  width: 36px; height: 20px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-m);
+  background: rgba(255, 255, 255, 0.12);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--t-base), border-color var(--t-base);
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  left: 2px; top: 50%;
+  transform: translateY(-50%);
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left var(--t-base);
+}
+.toggle:checked { background: var(--acc); border-color: var(--acc); }
+.toggle:checked::after { left: calc(100% - 16px); }
+
+/* ── Tab bar ────────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.tab {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--text-m);
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  bottom: -1px;
+  transition: color var(--t-fast);
+}
+.tab:hover { color: var(--text); }
+.tab.active, .tab.on {
+  color: var(--text);
+  background: var(--bg);
+  border-color: var(--border);
+  border-bottom-color: var(--bg);
+}
+
+/* ── Mono / code span ───────────────────────────────────────────────────── */
+code, .mono {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  background: rgba(2, 205, 164, 0.08);
+  color: rgba(20, 211, 170, 0.9);
+  padding: 1px 4px;
+  border-radius: var(--r-xs);
+}

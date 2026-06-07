@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EventForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Roboto:wght@400;700&family=Montserrat:wght@400;700;800&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Nunito:wght@400;700;800&family=Poppins:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/design.css">
+<link rel="stylesheet" href="alertdeck.css">
+<script src="/shared/utils.js"></script>
+<script src="/shared/i18n.js"></script>
+<script src="/shared/ws-client.js"></script>
+<script src="/shared/platform-status.js"></script>
+<script src="/shared/winctrl.js" defer></script>
+</head>
+<body>
+<div id="app">
+<div id="hdr">
+  <div class="brand" data-i18n="alertdeck.title">Alert<em>Deck</em></div>
+  <div class="pills">
+    <span class="pill tw" id="tw-pill"><span class="dot"></span><span id="tw-txt" data-i18n="alertdeck.twitch_disconnected">Twitch nicht verbunden</span></span>
+    <span class="pill yt" id="yt-pill"><span class="dot"></span><span id="yt-txt" data-i18n="alertdeck.youtube_disconnected">YouTube nicht verbunden</span></span>
+  </div>
+  <div class="hdr-btns">
+    <a class="link" href="/" style="padding:4px 10px;font-size:11px" data-i18n="alertdeck.hub">← Hub</a>
+  </div>
+</div>
+<div id="main">
+  <div id="feed">
+    <div class="ph">
+      <span><span data-i18n="alertdeck.feed.title">Live Feed</span>&nbsp;<span id="alert-cnt" style="color:var(--accent);font-family:'JetBrains Mono',monospace">0</span></span>
+      <button class="btn xs" onclick="exportAlerts()" data-i18n="alertdeck.export">⬇ Export</button>
+    </div>
+    <div id="alert-list"></div>
+  </div>
+  <div id="right">
+    <div id="tab-bar">
+      <button class="tab on"  onclick="switchTab('t-editor',this)" data-i18n="alertdeck.editor.title">Editor</button>
+    </div>
+    <!-- EDITOR TAB -->
+    <div id="t-editor" class="tc on">
+      <div id="ev-nav">
+        <div class="ev-nav-hd"><span data-i18n="alertdeck.events.header">Events</span><button class="btn xs pri" onclick="saveAll(true)" data-i18n="btn.save">Speichern</button></div>
+        <div id="ev-nav-list"></div>
+      </div>
+      <div id="ev-area">
+        <!-- CENTER: preview -->
+        <div id="ev-center">
+          <div id="ev-prev-area">
+            <div class="prev-hd">
+              <span>Vorschau</span>
+              <div class="prev-btns">
+                <input type="text" id="prev-url" readonly style="font-size:11px;width:220px;padding:6px 8px;background:var(--input-bg);border:1px solid var(--line);border-radius:3px;cursor:pointer;color:var(--text);" title="Click zum Kopieren">
+                <button class="btn xs" onclick="copyPreviewUrl()" title="URL kopieren">📋</button>
+                <button class="btn xs" onclick="soundTest()" title="Nur Sound testen">🔊</button>
+                <button class="btn xs" onclick="previewLocal()">▶ Lokal</button>
+                <button class="btn xs warn" onclick="previewObs()">▶ OBS</button>
+                <button class="btn xs" onclick="reloadPrev()">⟳</button>
+              </div>
+            </div>
+            <iframe id="prev-iframe" title="Alert Preview"></iframe>
+          </div>
+        </div>
+        <!-- RIGHT: options -->
+        <div id="ev-opts-col">
+          <div id="save-bar">
+            <span id="save-status">–</span>
+            <button class="btn xs pri" onclick="saveAll(true)" data-i18n="btn.save">Speichern</button>
+          </div>
+          <div id="ev-opts-wrap">
+            <div class="no-sel"><div class="no-sel-icon">⚡</div><div data-i18n="alertdeck.event.select">Event auswählen</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<script src="alertdeck.js"></script>
+</body>
+</html>
