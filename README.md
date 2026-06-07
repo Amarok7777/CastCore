@@ -1,191 +1,157 @@
 # CastCore
 
-Lokale Streaming-Tool-Suite für OBS — Timer, Chat, Alerts, Musik und Automation in einer Electron-App.
-SplitFlow (Speedrun Timer), ControlDeck, EventForge, ChatLink, ScenePilot, TrackPulse und FlowForge.
+Lokale Streaming-Tool-Suite für Streamer — Timer, Chat, Alerts, Musik, Szenen und Automation in einer Electron-App.
+
+> Alle Tools laufen vollständig lokal. Keine Cloud, keine Abonnements, keine externen Server.
+
+---
+
+## Tools
+
+| Tool | Beschreibung |
+|---|---|
+| **SplitFlow** | Speedrun-Timer mit Splits, Bestzeiten und OBS Overlay |
+| **ControlDeck** | Zentrale Stream-Schaltzentrale: OBS, Timer, Chat, Alerts, Musik |
+| **EventForge** | Alert-System für Twitch/YouTube Events (Subs, Raids, Donations…) |
+| **ChatLink** | Multi-Plattform Chat-Feed (Twitch + YouTube) mit Keywords & Highlights |
+| **ScenePilot** | OBS Szenen-Steuerung, MIDI-Mapping, Virtual Camera |
+| **TrackPulse** | Musik-Player mit OBS Now-Playing Overlay |
+| **FlowForge** | Automation-Engine: Trigger → Bedingung → Aktion |
+| **Widget URLs** | Generiert OBS Browser Source URLs für alle Overlays |
+
+---
+
+## Voraussetzungen
+
+- [Node.js](https://nodejs.org/) 18+
+- [OBS Studio](https://obsproject.com/) (optional, für OBS-Features)
+
+---
+
+## Setup
+
+```bash
+git clone https://github.com/Amarok7777/CastCore.git
+cd CastCore
+npm install
+npm start
+```
+
+Der Hub öffnet sich unter `http://localhost:7332`.  
+Overlays laufen auf `http://localhost:7331`.
+
+---
+
+## Twitch verbinden
+
+CastCore hat eine eingebaute Twitch-App — kein Developer-Account nötig.
+
+1. Hub öffnen → **Twitch** → Kanalnamen eingeben
+2. **Mit Twitch einloggen** klicken
+3. Code auf [twitch.tv/activate](https://twitch.tv/activate) eingeben
+
+Optional: eigene Twitch-App unter **Einstellungen → Twitch App-Konfiguration**.
+
+---
+
+## OBS einrichten
+
+Jedes Tool hat eine Overlay-URL. In OBS:  
+**Quelle hinzufügen → Browser → URL eintragen**
+
+| Overlay | URL |
+|---|---|
+| SplitFlow Timer | `http://localhost:7331/splitflow` |
+| TrackPulse Now Playing | `http://localhost:7331/tool/trackpulse/overlay` |
+| ChatLink Chat | `http://localhost:7331/tool/chatdeck/overlay` |
+| EventForge Alerts | `http://localhost:7331/tool/alertdeck/overlay` |
+
+Alle URLs auch unter **Widget URLs** im Hub.
+
+---
 
 ## Architektur
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Electron App (lokal)                    │
-│                                                             │
-│  ┌──────────────┐   ┌────────────────┐   ┌──────────────┐   │
-│  │ core/timer   │   │ core/splits    │   │core/settings │   │
-│  │ State Machine│   │ Profilverwalt. │   │ Persistenz   │   │
-│  └──────┬───────┘   └───────┬────────┘   └──────┬───────┘   │
-│         │                   │                    │          │
-│  ┌──────▼───────────────────▼────────────────────▼───────┐  │
-│  │              server/ (Express + WS)                   │  │
-│  │  Port 7331 → Overlay     Port 7332 → Dashboard        │  │
-│  └──────────────────────────────────────────────────────-┘  │
-│                                                             │
-│  ┌──────────────────────┐    ┌──────────────────────────┐   │
-│  │  server/hotkeys      │    │  main/ (Electron)        │   │
-│  │  Globale Tastenkürzel│    │  Tray, IPC, Fenster      │   │
-│  └──────────────────────┘    └──────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-         │                              │
-         ▼                              ▼
-  OBS Browser Source            Webbrowser
-  localhost:7331                localhost:7332
-  (Overlay-HTML)                (Dashboard)
+┌─────────────────────────────────────────────────────┐
+│                  Electron (main/)                   │
+│           Tray · IPC · BrowserWindow                │
+└───────────────────┬─────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+   Port 7331               Port 7332
+   Overlay-Server          Dashboard-Server
+   (OBS Browser Sources)   (Tool UIs + REST API)
+        │                       │
+        └───────────┬───────────┘
+                    ▼
+              WebSocket
+          (Timer · Chat · Alerts · Musik)
 ```
 
-## Tool Hub (neu)
-
-Die App startet jetzt uber einen zentralen Hub auf Port `7332` und kann mehrere Tools verwalten.
-
-- Startseite (Hub): `/` (Datei: `launcher/index.html`)
-- Tool-Registry: `tools/registry.js`
-- Tool-API: `GET /api/tools`
-- SplitFlow Tool-Route: `/tool/splitflow`
-
-So kannst du neue Tools spater erganzen:
-
-1. Tool in `tools/registry.js` eintragen
-2. Eine Route unter `/tool/<id>` im Server hinterlegen
-3. Optional eigenes UI-Verzeichnis fur das Tool anlegen
-
-Der Hub zeigt automatisch alle Eintrage aus der Registry an.
-
-## Datenfluss
+**Kernmodule:**
 
 ```
-Hotkey/Button gedrückt
-        │
-        ▼
-  timer.dispatch(action)       ← Einziger Einstiegspunkt für alle Aktionen
-        │
-        ▼
-  Timer-State-Machine
-  (idle → running → paused → finished)
-        │
-        ├─ emit('update', snapshot)
-        │         │
-        │         ▼
-        │   WebSocket broadcast
-        │         │
-        │         ▼
-        │   splitflow/overlay.html ← OBS sieht das sofort
-        │
-        └─ emit('stateChange')
-                  │
-                  ▼
-            Tray-Menü aktualisieren
+core/          State-Machines (Timer, Splits, Settings, …)
+server/        Express + WebSocket + REST API
+main/          Electron-Hauptprozess
+shared/        Design-System, i18n, Utilities
+data/          Runtime-Daten (gitignored)
 ```
 
-## Setup & Start
-
-```bash
-npm install
-npm start          # Startet Electron + beide Server
-```
-
-## Plattformen (einfacher Modus)
-
-Der Hub verwaltet Twitch und YouTube zentral uber Kanalname oder Handle.
-
-So funktioniert es aktuell:
-
-1. Im Hub den Twitch-Kanal oder YouTube-Handle eintragen
-2. Auf `Verbinden` klicken
-3. ChatLink und EventForge nutzen diese Konfiguration automatisch mit
-
-Hinweise:
-
-- Twitch verbindet sich direkt uber den angegebenen Kanalnamen
-- YouTube versucht uber den angegebenen Kanal oder Handle den aktiven Livestream zu finden
-- Wenn kein aktiver YouTube-Livestream gefunden wird, bleibt die Verbindung getrennt
-
-## OBS einrichten
-
-1. SplitFlow starten
-2. In OBS: **Quelle hinzufügen → Browser**
-3. URL: `http://localhost:7331/splitflow`
-4. Breite: 280px, Höhe: 500px (je nach Splitanzahl anpassen)
-5. **"Transparenz des Hintergrunds erlauben"** aktivieren
+---
 
 ## Dateistruktur
 
 ```
-splitflow/
-├── launcher/
-│   └── index.html      Startseite / Tool Hub (Auswahlseite)
-├── tools/
-│   └── registry.js     Tool-Katalog (Status, Route, Metadaten)
-├── main/
-│   ├── index.js        Electron-Hauptprozess, Tray, IPC
-│   └── preload.js      Sichere IPC-Bridge für Dashboard-Renderer
-├── server/
-│   ├── index.js        Server-Bootstrap
-│   ├── httpServer.js   Express (Overlay + Dashboard + REST API)
-│   ├── wsServer.js     WebSocket — überträgt Timer-State an Overlay
-│   ├── hotkeys.js      Globale Tastenkürzel via uiohook-napi
-│   └── views/
-│       └── auth.html    OAuth-Setup für Twitch und YouTube
-├── core/
-│   ├── timer.js        Timer-State-Machine (das Herzstück)
-│   ├── splits.js       Profil-Verwaltung, LSS Import/Export
-│   └── settings.js     Persistente Einstellungen
-├── splitflow/
-│   ├── index.html      SplitFlow Konfigurations-Oberfläche
-│   └── overlay.html    OBS Browser Source — verbindet sich per WebSocket
-├── legacy/
-│   ├── shims/          Kompatibilitäts-Weiterleitungen
-│   └── credentials/    Manuelle Setup-Dateien / Archiv
-└── data/
-    ├── settings.json   Gespeicherte Einstellungen
-    └── splits/         Splits-Profile als .json
-        └── super-mario-64-any.json
+CastCore/
+├── main/              Electron-Hauptprozess + IPC
+├── server/            Express-Server, REST-Routen, Services
+├── core/              Zustandsverwaltung (Timer, Splits, Settings …)
+├── shared/            Design-System, i18n (de/en), Utilities
+├── tools/             Tool-Registry
+├── launcher/          Hub-Startseite
+├── splitflow/         SplitFlow-Tool (Timer + Overlay)
+├── controldeck/       ControlDeck-Tool
+├── alertdeck/         EventForge-Tool
+├── chatdeck/          ChatLink-Tool
+├── scenepilot/        ScenePilot-Tool
+├── tunapilot/         TrackPulse-Tool
+├── flowforge/         FlowForge-Tool
+├── settings/          Einstellungen-Seite
+├── widgeturls/        Widget-URL-Generator
+└── docs/              Dokumentation
 ```
 
-## Timer-Aktionen
+---
 
-| Aktion     | Standard-Hotkey | Beschreibung                         |
-|------------|-----------------|--------------------------------------|
-| start      | Numpad 1        | Starten / Nächster Split / Fortsetzen|
-| pause      | Numpad 2        | Pausieren / Fortsetzen               |
-| reset      | Numpad 3        | Zurücksetzen                         |
-| undo       | Numpad 4        | Letzten Split rückgängig             |
-| skip       | Numpad 5        | Aktuellen Split überspringen         |
+## Lokalisierung
 
-## WebSocket-Protokoll
+Die App unterstützt Deutsch und Englisch.  
+Sprache wechseln: Hub → Sprachumschalter (DE / EN).
 
-**Server → Client (Overlay):**
-```json
-{ "type": "SNAPSHOT", "payload": { ...snapshot } }
-{ "type": "UPDATE",   "payload": { ...snapshot } }
-```
+Locale-Dateien: `shared/locales/de.json` · `shared/locales/en.json`
 
-**Client → Server (optional, für Overlay-Buttons):**
-```json
-{ "type": "ACTION", "action": "start" }
-```
+---
 
-## Timer-Snapshot
+## SplitFlow Hotkeys
 
-```json
-{
-  "state":         "running",
-  "currentSplit":  3,
-  "elapsed":       284.732,
-  "attempts":      47,
-  "finishedCount": 12,
-  "profile":       { "game": "...", "category": "..." },
-  "segments": [
-    {
-      "name":      "Bob-omb Battlefield",
-      "pb":        92.4,
-      "gold":      88.1,
-      "duration":  90.21,
-      "skipped":   false,
-      "isGold":    false,
-      "splitTime": 90.21,
-      "delta":     -2.19
-    }
-  ],
-  "pbTotal":   847.8,
-  "sobTotal":  806.3,
-  "liveDelta": -1.4
-}
+| Aktion | Standard |
+|---|---|
+| Start / Split / Fortsetzen | Numpad 1 |
+| Pause | Numpad 2 |
+| Reset | Numpad 3 |
+| Undo Split | Numpad 4 |
+| Split überspringen | Numpad 5 |
+
+Hotkeys anpassen unter **Einstellungen → SplitFlow Hotkeys**.
+
+---
+
+## Build
+
+```bash
+npm run dist:win       # Windows NSIS Installer
+npm run dist:portable  # Windows Portable
 ```
