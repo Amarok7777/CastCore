@@ -24,7 +24,7 @@ function createOAuthLoopbackServer(dashboardPort) {
       const url = new URL(req.url || '/', 'http://localhost');
       if (!url.searchParams.has('code') && !url.searchParams.has('error')) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<html><body style="font-family:sans-serif;padding:24px;background:#0e0e10;color:#efece8"><h3>SplitFlow OAuth bereit</h3><p>Dieser lokale Callback wird fuer Twitch- und YouTube-Logins verwendet.</p></body></html>');
+        res.end('<html><body style="font-family:sans-serif;padding:24px;background:#0e0e10;color:#efece8"><h3>CastCore OAuth bereit</h3><p>Dieser lokale Callback wird fuer Twitch- und YouTube-Logins verwendet.</p></body></html>');
         return;
       }
       const target = new URL(`http://localhost:${dashboardPort}/auth/oauth/callback`);

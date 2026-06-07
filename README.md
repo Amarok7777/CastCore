@@ -1,6 +1,7 @@
-# SplitFlow — OBS Speedrun Timer
+# CastCore
 
-Ein vollständig anpassbarer Speedrun-Timer als OBS Browser Source.
+Lokale Streaming-Tool-Suite für OBS — Timer, Chat, Alerts, Musik und Automation in einer Electron-App.
+SplitFlow (Speedrun Timer), ControlDeck, EventForge, ChatLink, ScenePilot, TrackPulse und FlowForge.
 
 ## Architektur
 

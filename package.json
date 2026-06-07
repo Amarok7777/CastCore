@@ -24,8 +24,8 @@
     "electron-packager": "^17.1.2"
   },
   "build": {
-    "appId": "com.splitflow.app",
-    "productName": "SplitFlow",
+    "appId": "com.castcore.app",
+    "productName": "CastCore",
     "asar": false,
     "afterPack": "./scripts/afterPack.js",
     "directories": {
@@ -61,7 +61,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SplitFlow"
+      "shortcutName": "CastCore"
     },
     "publish": {
       "provider": "github",

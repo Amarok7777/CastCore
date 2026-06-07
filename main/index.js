@@ -59,9 +59,9 @@ if (!app.requestSingleInstanceLock()) {
 // a user-friendly message box for any uncaught main-process exception.
 process.on('uncaughtException', (err) => {
   const msg = err.code === 'EADDRINUSE'
-    ? `Port ${err.port ?? OVERLAY_PORT} is already in use.\n\nAnother SplitFlow may already be running in the system tray — right-click its icon and choose Quit first.`
+    ? `Port ${err.port ?? OVERLAY_PORT} is already in use.\n\nAnother CastCore may already be running in the system tray — right-click its icon and choose Quit first.`
     : `Unexpected error:\n${err.message}`;
-  try { dialog.showErrorBox('SplitFlow — Startup Error', msg); } catch {}
+  try { dialog.showErrorBox('CastCore — Startup Error', msg); } catch {}
   app.exit(1);
 });
 
@@ -113,9 +113,9 @@ app.whenReady().then(async () => {
     });
   } catch (err) {
     const msg = err.code === 'EADDRINUSE'
-      ? `Port ${err.port ?? (err.message.match(/\d+/) || [])[0] ?? 'required'} is already in use.\n\nClose the existing SplitFlow window and try again.`
+      ? `Port ${err.port ?? (err.message.match(/\d+/) || [])[0] ?? 'required'} is already in use.\n\nClose the existing CastCore window and try again.`
       : `Failed to start servers:\n${err.message}`;
-    dialog.showErrorBox('SplitFlow — Startup Error', msg);
+    dialog.showErrorBox('CastCore — Startup Error', msg);
     app.exit(1);
     return;
   }
@@ -301,7 +301,7 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width:  960,
     height: 700,
-    title:  'SplitFlow Tool Hub',
+    title:  'CastCore',
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color:       '#060c10',
@@ -356,12 +356,12 @@ function createTray() {
   // Use a blank 16×16 image as fallback if no icon asset exists yet.
   const icon = nativeImage.createEmpty();
   tray = new Tray(icon);
-  tray.setToolTip('SplitFlow');
+  tray.setToolTip('CastCore');
   refreshTrayMenu();
 
   // Update tray label whenever the timer state changes
   timer.on('update', (snapshot) => {
-    tray.setToolTip(`SplitFlow — ${snapshot.state}`);
+    tray.setToolTip(`CastCore — ${snapshot.state}`);
     refreshTrayMenu(snapshot);
   });
 }
@@ -381,7 +381,7 @@ function refreshTrayMenu(snapshot = null) {
     { label: 'Pause',         click: () => timer.dispatch('pause') },
     { label: 'Reset',         click: () => timer.dispatch('reset') },
     { type: 'separator' },
-    { label: 'Quit SplitFlow', click: () => app.quit() },
+    { label: 'Quit CastCore', click: () => app.quit() },
   ]);
 
   tray.setContextMenu(menu);

@@ -402,7 +402,7 @@ class FlowForgeEngine {
         try {
           await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json', 'User-Agent': 'SplitFlow-FlowForge/1.0' },
+            headers: { 'Content-Type': 'application/json', 'User-Agent': 'CastCore-FlowForge/1.0' },
             body: method !== 'GET' && rawBody ? rawBody : undefined,
           });
         } catch (e) {
