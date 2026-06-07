@@ -1,30 +1,30 @@
 # CastCore
 
-Lokale Streaming-Tool-Suite für Streamer — Timer, Chat, Alerts, Musik, Szenen und Automation in einer Electron-App.
+Local streaming tool suite for streamers — timer, chat, alerts, music, scenes and automation in one Electron app.
 
-> Alle Tools laufen vollständig lokal. Keine Cloud, keine Abonnements, keine externen Server.
+> Everything runs fully local. No cloud, no subscriptions, no external servers.
 
 ---
 
 ## Tools
 
-| Tool | Beschreibung |
+| Tool | Description |
 |---|---|
-| **SplitFlow** | Speedrun-Timer mit Splits, Bestzeiten und OBS Overlay |
-| **ControlDeck** | Zentrale Stream-Schaltzentrale: OBS, Timer, Chat, Alerts, Musik |
-| **EventForge** | Alert-System für Twitch/YouTube Events (Subs, Raids, Donations…) |
-| **ChatLink** | Multi-Plattform Chat-Feed (Twitch + YouTube) mit Keywords & Highlights |
-| **ScenePilot** | OBS Szenen-Steuerung, MIDI-Mapping, Virtual Camera |
-| **TrackPulse** | Musik-Player mit OBS Now-Playing Overlay |
-| **FlowForge** | Automation-Engine: Trigger → Bedingung → Aktion |
-| **Widget URLs** | Generiert OBS Browser Source URLs für alle Overlays |
+| **SplitFlow** | Speedrun timer with splits, personal bests and OBS overlay |
+| **ControlDeck** | Central stream dashboard: OBS, timer, chat, alerts, music |
+| **EventForge** | Alert system for Twitch/YouTube events (subs, raids, donations…) |
+| **ChatLink** | Multi-platform chat feed (Twitch + YouTube) with keywords & highlights |
+| **ScenePilot** | OBS scene control, MIDI mapping, virtual camera |
+| **TrackPulse** | Music player with OBS now-playing overlay |
+| **FlowForge** | Automation engine: trigger → condition → action |
+| **Widget URLs** | Generates OBS browser source URLs for all overlays |
 
 ---
 
-## Voraussetzungen
+## Requirements
 
 - [Node.js](https://nodejs.org/) 18+
-- [OBS Studio](https://obsproject.com/) (optional, für OBS-Features)
+- [OBS Studio](https://obsproject.com/) (optional, for OBS features)
 
 ---
 
@@ -37,27 +37,27 @@ npm install
 npm start
 ```
 
-Der Hub öffnet sich unter `http://localhost:7332`.  
-Overlays laufen auf `http://localhost:7331`.
+The hub opens at `http://localhost:7332`.  
+Overlays run on `http://localhost:7331`.
 
 ---
 
-## Twitch verbinden
+## Connecting Twitch
 
-CastCore hat eine eingebaute Twitch-App — kein Developer-Account nötig.
+CastCore ships with a built-in Twitch app — no developer account needed.
 
-1. Hub öffnen → **Twitch** → Kanalnamen eingeben
-2. **Mit Twitch einloggen** klicken
-3. Code auf [twitch.tv/activate](https://twitch.tv/activate) eingeben
+1. Open the hub → **Twitch** → enter your channel name
+2. Click **Login with Twitch**
+3. Enter the code at [twitch.tv/activate](https://twitch.tv/activate)
 
-Optional: eigene Twitch-App unter **Einstellungen → Twitch App-Konfiguration**.
+Optional: use your own Twitch app under **Settings → Twitch App Configuration**.
 
 ---
 
-## OBS einrichten
+## OBS Setup
 
-Jedes Tool hat eine Overlay-URL. In OBS:  
-**Quelle hinzufügen → Browser → URL eintragen**
+Every tool has an overlay URL. In OBS:  
+**Add Source → Browser → enter URL**
 
 | Overlay | URL |
 |---|---|
@@ -66,11 +66,11 @@ Jedes Tool hat eine Overlay-URL. In OBS:
 | ChatLink Chat | `http://localhost:7331/tool/chatdeck/overlay` |
 | EventForge Alerts | `http://localhost:7331/tool/alertdeck/overlay` |
 
-Alle URLs auch unter **Widget URLs** im Hub.
+All URLs are also available under **Widget URLs** in the hub.
 
 ---
 
-## Architektur
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -81,77 +81,77 @@ Alle URLs auch unter **Widget URLs** im Hub.
         ┌───────────┴───────────┐
         ▼                       ▼
    Port 7331               Port 7332
-   Overlay-Server          Dashboard-Server
-   (OBS Browser Sources)   (Tool UIs + REST API)
+   Overlay server          Dashboard server
+   (OBS browser sources)   (Tool UIs + REST API)
         │                       │
         └───────────┬───────────┘
                     ▼
               WebSocket
-          (Timer · Chat · Alerts · Musik)
+          (timer · chat · alerts · music)
 ```
 
-**Kernmodule:**
+**Core modules:**
 
 ```
-core/          State-Machines (Timer, Splits, Settings, …)
+core/          State machines (timer, splits, settings, …)
 server/        Express + WebSocket + REST API
-main/          Electron-Hauptprozess
-shared/        Design-System, i18n, Utilities
-data/          Runtime-Daten (gitignored)
+main/          Electron main process
+shared/        Design system, i18n, utilities
+data/          Runtime data (gitignored)
 ```
 
 ---
 
-## Dateistruktur
+## File Structure
 
 ```
 CastCore/
-├── main/              Electron-Hauptprozess + IPC
-├── server/            Express-Server, REST-Routen, Services
-├── core/              Zustandsverwaltung (Timer, Splits, Settings …)
-├── shared/            Design-System, i18n (de/en), Utilities
-├── tools/             Tool-Registry
-├── launcher/          Hub-Startseite
-├── splitflow/         SplitFlow-Tool (Timer + Overlay)
-├── controldeck/       ControlDeck-Tool
-├── alertdeck/         EventForge-Tool
-├── chatdeck/          ChatLink-Tool
-├── scenepilot/        ScenePilot-Tool
-├── tunapilot/         TrackPulse-Tool
-├── flowforge/         FlowForge-Tool
-├── settings/          Einstellungen-Seite
-├── widgeturls/        Widget-URL-Generator
-└── docs/              Dokumentation
+├── main/              Electron main process + IPC
+├── server/            Express server, REST routes, services
+├── core/              State management (timer, splits, settings …)
+├── shared/            Design system, i18n (de/en), utilities
+├── tools/             Tool registry
+├── launcher/          Hub landing page
+├── splitflow/         SplitFlow tool (timer + overlay)
+├── controldeck/       ControlDeck tool
+├── alertdeck/         EventForge tool
+├── chatdeck/          ChatLink tool
+├── scenepilot/        ScenePilot tool
+├── tunapilot/         TrackPulse tool
+├── flowforge/         FlowForge tool
+├── settings/          Settings page
+├── widgeturls/        Widget URL generator
+└── docs/              Documentation
 ```
 
 ---
 
-## Lokalisierung
+## Localization
 
-Die App unterstützt Deutsch und Englisch.  
-Sprache wechseln: Hub → Sprachumschalter (DE / EN).
+The app supports German and English.  
+Switch language: hub → language switcher (DE / EN).
 
-Locale-Dateien: `shared/locales/de.json` · `shared/locales/en.json`
+Locale files: `shared/locales/de.json` · `shared/locales/en.json`
 
 ---
 
 ## SplitFlow Hotkeys
 
-| Aktion | Standard |
+| Action | Default |
 |---|---|
-| Start / Split / Fortsetzen | Numpad 1 |
+| Start / Split / Resume | Numpad 1 |
 | Pause | Numpad 2 |
 | Reset | Numpad 3 |
-| Undo Split | Numpad 4 |
-| Split überspringen | Numpad 5 |
+| Undo split | Numpad 4 |
+| Skip split | Numpad 5 |
 
-Hotkeys anpassen unter **Einstellungen → SplitFlow Hotkeys**.
+Customize hotkeys under **Settings → SplitFlow Hotkeys**.
 
 ---
 
 ## Build
 
 ```bash
-npm run dist:win       # Windows NSIS Installer
-npm run dist:portable  # Windows Portable
+npm run dist:win       # Windows NSIS installer
+npm run dist:portable  # Windows portable
 ```
