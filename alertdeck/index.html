@@ -49,13 +49,13 @@
         <div id="ev-center">
           <div id="ev-prev-area">
             <div class="prev-hd">
-              <span>Vorschau</span>
+              <span data-i18n="alertdeck.preview">Vorschau</span>
               <div class="prev-btns">
                 <input type="text" id="prev-url" readonly style="font-size:11px;width:220px;padding:6px 8px;background:var(--input-bg);border:1px solid var(--line);border-radius:3px;cursor:pointer;color:var(--text);" title="Click zum Kopieren">
                 <button class="btn xs" onclick="copyPreviewUrl()" title="URL kopieren">📋</button>
                 <button class="btn xs" onclick="soundTest()" title="Nur Sound testen">🔊</button>
-                <button class="btn xs" onclick="previewLocal()">▶ Lokal</button>
-                <button class="btn xs warn" onclick="previewObs()">▶ OBS</button>
+                <button class="btn xs" onclick="previewLocal()" data-i18n="alertdeck.preview_local">▶ Lokal</button>
+                <button class="btn xs warn" onclick="previewObs()" data-i18n="alertdeck.preview_obs">▶ OBS</button>
                 <button class="btn xs" onclick="reloadPrev()">⟳</button>
               </div>
             </div>

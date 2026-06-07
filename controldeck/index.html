@@ -776,22 +776,22 @@ body { overflow-x: hidden; }
 
             <button class="obs-ctrl-btn" id="stream-btn" onclick="toggleStream()" disabled>
               <span class="obs-live-dot" id="stream-dot"></span>
-              <span id="stream-label">Stream starten</span>
+              <span id="stream-label" data-i18n="controldeck.stream.start">Stream starten</span>
               <span class="obs-ctrl-time" id="stream-time"></span>
             </button>
 
             <div class="obs-ctrl-record-row">
               <button class="obs-ctrl-btn" id="record-btn" onclick="toggleRecord()" disabled>
                 <span class="obs-live-dot" id="record-dot"></span>
-                <span id="record-label">Aufnahme starten</span>
+                <span id="record-label" data-i18n="controldeck.record.start">Aufnahme starten</span>
                 <span class="obs-ctrl-time" id="record-time"></span>
               </button>
-              <button class="btn xs" id="record-pause-btn" onclick="toggleRecordPause()" style="display:none" title="Aufnahme pausieren">⏸</button>
+              <button class="btn xs" id="record-pause-btn" onclick="toggleRecordPause()" style="display:none" data-i18n-attr="title" data-i18n="controldeck.record.pause" title="Aufnahme pausieren">⏸</button>
             </div>
 
             <button class="obs-ctrl-btn" id="vcam-btn" onclick="toggleVirtualCam()" disabled>
               <span class="obs-live-dot" id="vcam-dot"></span>
-              <span id="vcam-label">Virtual Camera</span>
+              <span id="vcam-label" data-i18n="controldeck.vcam.label">Virtual Camera</span>
             </button>
 
           </div>
@@ -859,7 +859,7 @@ body { overflow-x: hidden; }
       </div>
 
       <div class="alert-feed-mini" id="ef-feed">
-        <div class="empty-hint" id="ef-empty">Noch keine Alerts</div>
+        <div class="empty-hint" id="ef-empty" data-i18n="controldeck.no_alerts">Noch keine Alerts</div>
       </div>
     </div>
 
@@ -1201,7 +1201,7 @@ function updateObsCtrlBar({ connected, streaming, recording, recordPaused, strea
     streamBtn.disabled = !connected;
     streamBtn.classList.toggle('streaming', streaming);
     get('stream-dot').classList.toggle('active', streaming);
-    get('stream-label').textContent = streaming ? 'Stream beenden' : 'Stream starten';
+    get('stream-label').textContent = streaming ? t('controldeck.stream.stop') : t('controldeck.stream.start');
     get('stream-time').textContent  = formatDuration(streamMs);
   }
 
@@ -1210,13 +1210,13 @@ function updateObsCtrlBar({ connected, streaming, recording, recordPaused, strea
     recordBtn.disabled = !connected;
     recordBtn.classList.toggle('recording', recording && !recordPaused);
     get('record-dot').classList.toggle('active', recording && !recordPaused);
-    get('record-label').textContent = recording ? 'Aufnahme beenden' : 'Aufnahme starten';
+    get('record-label').textContent = recording ? t('controldeck.record.stop') : t('controldeck.record.start');
     get('record-time').textContent  = formatDuration(recordMs);
     const pauseBtn = get('record-pause-btn');
     if (pauseBtn) {
       pauseBtn.style.display = recording ? '' : 'none';
       pauseBtn.textContent   = recordPaused ? '▶' : '⏸';
-      pauseBtn.title = recordPaused ? 'Aufnahme fortsetzen' : 'Aufnahme pausieren';
+      pauseBtn.title = recordPaused ? t('controldeck.record.resume') : t('controldeck.record.pause');
     }
   }
 
@@ -1249,18 +1249,18 @@ function updateObsCtrlBar({ connected, streaming, recording, recordPaused, strea
     vcamBtn.disabled = !connected;
     vcamBtn.classList.toggle('streaming', virtualCam);
     get('vcam-dot').classList.toggle('active', virtualCam);
-    get('vcam-label').textContent = virtualCam ? 'VCam aktiv' : 'Virtual Camera';
+    get('vcam-label').textContent = virtualCam ? t('controldeck.vcam.active') : t('controldeck.vcam.label');
   }
 }
 
 async function toggleStream() {
   if (!obsConnected) return;
   const next = !isStreaming;
-  if (isStreaming && !confirm('Stream wirklich beenden?')) return;
+  if (isStreaming && !confirm(t('controldeck.stream.confirm_stop'))) return;
   isStreaming = next;
   document.getElementById('stream-btn').classList.toggle('streaming', next);
   document.getElementById('stream-dot').classList.toggle('active', next);
-  document.getElementById('stream-label').textContent = next ? 'Stream beenden' : 'Stream starten';
+  document.getElementById('stream-label').textContent = next ? t('controldeck.stream.stop') : t('controldeck.stream.start');
   if (!next) document.getElementById('stream-time').textContent = '';
   try {
     await safeJson(`/api/scenepilot/stream/${next ? 'start' : 'stop'}`, { method: 'POST' });
@@ -1270,11 +1270,11 @@ async function toggleStream() {
 async function toggleRecord() {
   if (!obsConnected) return;
   const next = !isRecording;
-  if (isRecording && !confirm('Aufnahme wirklich beenden?')) return;
+  if (isRecording && !confirm(t('controldeck.record.confirm_stop'))) return;
   isRecording = next;
   document.getElementById('record-btn').classList.toggle('recording', next);
   document.getElementById('record-dot').classList.toggle('active', next);
-  document.getElementById('record-label').textContent = next ? 'Aufnahme beenden' : 'Aufnahme starten';
+  document.getElementById('record-label').textContent = next ? t('controldeck.record.stop') : t('controldeck.record.start');
   document.getElementById('record-pause-btn').style.display = next ? '' : 'none';
   if (!next) document.getElementById('record-time').textContent = '';
   try {
@@ -1287,7 +1287,7 @@ async function toggleRecordPause() {
   const next = !isRecordPaused;
   isRecordPaused = next;
   const pauseBtn = document.getElementById('record-pause-btn');
-  if (pauseBtn) { pauseBtn.textContent = next ? '▶' : '⏸'; pauseBtn.title = next ? 'Aufnahme fortsetzen' : 'Aufnahme pausieren'; }
+  if (pauseBtn) { pauseBtn.textContent = next ? '▶' : '⏸'; pauseBtn.title = next ? t('controldeck.record.resume') : t('controldeck.record.pause'); }
   document.getElementById('record-dot').classList.toggle('active', !next);
   document.getElementById('record-btn').classList.toggle('recording', !next);
   try {
@@ -2023,7 +2023,7 @@ async function toggleVirtualCam() {
   isVirtualCam = next;
   document.getElementById('vcam-btn').classList.toggle('streaming', next);
   document.getElementById('vcam-dot').classList.toggle('active', next);
-  document.getElementById('vcam-label').textContent = next ? 'VCam aktiv' : 'Virtual Camera';
+  document.getElementById('vcam-label').textContent = next ? t('controldeck.vcam.active') : t('controldeck.vcam.label');
   try {
     await safeJson(`/api/scenepilot/virtualcam/${next ? 'start' : 'stop'}`, { method: 'POST' });
   } catch (e) { console.error('toggleVirtualCam failed', e); }

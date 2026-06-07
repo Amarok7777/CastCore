@@ -637,5 +637,48 @@
   "tool.category.automation": "Automation",
   "tool.category.general": "Allgemein",
   "msg.twitch.device_flow_failed": "Twitch Device Flow konnte nicht gestartet werden",
-  "msg.twitch.browser_opened": "Twitch-Login wurde im Standardbrowser geöffnet."
+  "msg.twitch.browser_opened": "Twitch-Login wurde im Standardbrowser geöffnet.",
+
+  "controldeck.stream.start": "Stream starten",
+  "controldeck.stream.stop": "Stream beenden",
+  "controldeck.stream.confirm_stop": "Stream wirklich beenden?",
+  "controldeck.record.start": "Aufnahme starten",
+  "controldeck.record.stop": "Aufnahme beenden",
+  "controldeck.record.pause": "Aufnahme pausieren",
+  "controldeck.record.resume": "Aufnahme fortsetzen",
+  "controldeck.record.confirm_stop": "Aufnahme wirklich beenden?",
+  "controldeck.vcam.label": "Virtual Camera",
+  "controldeck.vcam.active": "VCam aktiv",
+
+  "splitflow.ws.connecting": "Verbinde...",
+  "splitflow.no_profile": "Noch kein Profil",
+  "splitflow.panel.subtitle": "Erstelle ein Profil für dein Spiel, definiere die Splits und lade es in den Timer",
+  "splitflow.confirm.clear": "Alle Splits leeren?",
+  "splitflow.confirm.switch": "Ungespeicherte Änderungen gehen verloren. Trotzdem wechseln?",
+  "splitflow.confirm.continue": "Ungespeicherte Änderungen gehen verloren. Trotzdem fortfahren?",
+  "splitflow.theme.note.neutral": "neutral",
+  "splitflow.theme.note.rich": "sättig",
+  "splitflow.theme.note.light": "hell",
+  "splitflow.theme.note.retro": "retro",
+  "splitflow.theme.note.free": "frei",
+  "splitflow.preset.compact": "mehr Splits sichtbar",
+  "splitflow.preset.balanced": "allround Standard",
+  "splitflow.preset.focus": "größerer Timer",
+
+  "alertdeck.preview": "Vorschau",
+
+  "widgeturls.group.general": "Allgemein",
+  "widgeturls.table.current_value": "Aktueller Wert",
+  "widgeturls.table.obs_url": "URL für OBS",
+
+  "settings.twitch_app.title": "Twitch — App-Konfiguration",
+  "settings.twitch_app.ready": "Bereit — CastCore App aktiv",
+  "settings.twitch_app.desc": "CastCore enthält eine eigene Twitch-App-Integration. Du kannst Twitch direkt verbinden — keine Einrichtung nötig.",
+  "settings.twitch_app.advanced": "Eigene Twitch-App verwenden (Advanced)",
+  "settings.twitch_app.client_id_label": "Client ID",
+  "settings.twitch_app.client_id_ph": "Leer lassen = CastCore-Default verwenden",
+  "settings.twitch_app.guide_title": "Wo bekomme ich die Client ID?",
+
+  "scenepilot.midi.not_available": "WebMIDI nicht verfügbar in dieser Runtime",
+  "scenepilot.valuemode.hint_any": "Jedes eingehende CC-Signal löst den Trigger aus, unabhängig vom Wert."
 }

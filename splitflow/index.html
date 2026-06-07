@@ -23,7 +23,7 @@
   <div class="tool-topbar-status">
     <span class="badge neutral" id="ws-topbar-badge">
       <span class="dot" id="ws-topbar-dot" style="opacity:0.4"></span>
-      <span id="ws-topbar-text">Verbinde...</span>
+      <span id="ws-topbar-text" data-i18n="splitflow.ws.connecting">Verbinde...</span>
     </span>
   </div>
   <a class="link" href="/" data-i18n="nav.back_hub">← Hub</a>
@@ -92,7 +92,7 @@
   <div id="panel-splits" class="panel active">
     <div>
       <div class="panel-title" data-i18n="splitflow.panel.splits">Profile &amp; Splits</div>
-      <div class="panel-subtitle">Erstelle ein Profil für dein Spiel, definiere die Splits und lade es in den Timer</div>
+      <div class="panel-subtitle" data-i18n="splitflow.panel.subtitle">Erstelle ein Profil für dein Spiel, definiere die Splits und lade es in den Timer</div>
     </div>
 
     <div class="card">
@@ -207,7 +207,7 @@
                 <span class="theme-dot" style="background:#e05555"></span>
                 <span class="theme-dot" style="background:#f0c040"></span>
               </div>
-              <span class="chip-note">neutral</span>
+              <span class="chip-note" data-i18n="splitflow.theme.note.neutral">neutral</span>
             </div>
             <div class="theme-chip" data-theme="midnight">
               <div class="theme-head"><span class="theme-name">Midnight</span></div>
@@ -218,7 +218,7 @@
                 <span class="theme-dot" style="background:#f07070"></span>
                 <span class="theme-dot" style="background:#ffd060"></span>
               </div>
-              <span class="chip-note">sättig</span>
+              <span class="chip-note" data-i18n="splitflow.theme.note.rich">sättig</span>
             </div>
             <div class="theme-chip" data-theme="clean">
               <div class="theme-head"><span class="theme-name">Clean</span></div>
@@ -229,7 +229,7 @@
                 <span class="theme-dot" style="background:#c03030;border-color:rgba(0,0,0,0.2)"></span>
                 <span class="theme-dot" style="background:#b08000;border-color:rgba(0,0,0,0.2)"></span>
               </div>
-              <span class="chip-note">hell</span>
+              <span class="chip-note" data-i18n="splitflow.theme.note.light">hell</span>
             </div>
             <div class="theme-chip" data-theme="neon">
               <div class="theme-head"><span class="theme-name">Neon</span></div>
@@ -240,7 +240,7 @@
                 <span class="theme-dot" style="background:#ff3366;box-shadow:0 0 4px #ff336688"></span>
                 <span class="theme-dot" style="background:#ffcc00;box-shadow:0 0 4px #ffcc0088"></span>
               </div>
-              <span class="chip-note">retro</span>
+              <span class="chip-note" data-i18n="splitflow.theme.note.retro">retro</span>
             </div>
             <div class="theme-chip" data-theme="custom">
               <div class="theme-head"><span class="theme-name">Custom</span></div>
@@ -251,7 +251,7 @@
                 <span class="theme-dot" style="background:var(--ts)"></span>
                 <span class="theme-dot" style="background:var(--acc4)"></span>
               </div>
-              <span class="chip-note">frei</span>
+              <span class="chip-note" data-i18n="splitflow.theme.note.free">frei</span>
             </div>
           </div>
         </div>
@@ -264,9 +264,9 @@
             </div>
           </div>
           <div class="preset-row">
-            <button class="preset-btn" onclick="applyAppearancePreset('compact')">Compact<br><span class="muted">mehr Splits sichtbar</span></button>
-            <button class="preset-btn" onclick="applyAppearancePreset('balanced')">Balanced<br><span class="muted">allround Standard</span></button>
-            <button class="preset-btn" onclick="applyAppearancePreset('focus')">Focus<br><span class="muted">größerer Timer</span></button>
+            <button class="preset-btn" onclick="applyAppearancePreset('compact')">Compact<br><span class="muted" data-i18n="splitflow.preset.compact">mehr Splits sichtbar</span></button>
+            <button class="preset-btn" onclick="applyAppearancePreset('balanced')">Balanced<br><span class="muted" data-i18n="splitflow.preset.balanced">allround Standard</span></button>
+            <button class="preset-btn" onclick="applyAppearancePreset('focus')">Focus<br><span class="muted" data-i18n="splitflow.preset.focus">größerer Timer</span></button>
           </div>
           <div class="designer-grid-2">
             <div class="field-block">

@@ -80,7 +80,7 @@
         <rect x="1" y="5" width="14" height="8" rx="1.5"/>
         <path d="M4 9h1M8 9h1M12 9h1M5.5 11.5h5"/>
       </svg>
-      SplitFlow — Hotkeys
+      <span data-i18n="settings.hotkeys.heading">SplitFlow — Hotkeys</span>
     </div>
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 260px;gap:18px;align-items:start">
@@ -153,36 +153,34 @@
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 2h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H9l-3 3v-3H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/>
       </svg>
-      Twitch — App-Konfiguration
+      <span data-i18n="settings.twitch_app.title">Twitch — App-Konfiguration</span>
     </div>
     <div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
         <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ok);background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:999px;padding:3px 10px">
           <span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>
-          Bereit — CastCore App aktiv
+          <span data-i18n="settings.twitch_app.ready">Bereit — CastCore App aktiv</span>
         </span>
       </div>
-      <p style="font-size:12px;color:var(--text-m);line-height:1.6;margin:0 0 14px">
+      <p style="font-size:12px;color:var(--text-m);line-height:1.6;margin:0 0 14px" data-i18n="settings.twitch_app.desc">
         CastCore enthält eine eigene Twitch-App-Integration. Du kannst Twitch direkt verbinden — keine Einrichtung nötig.
       </p>
       <details style="-webkit-app-region:no-drag">
         <summary style="font-size:11px;color:var(--text-s);cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:5px">
           <svg id="adv-arrow" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .15s"><path d="M2 3.5l3 3 3-3"/></svg>
-          Eigene Twitch-App verwenden (Advanced)
+          <span data-i18n="settings.twitch_app.advanced">Eigene Twitch-App verwenden (Advanced)</span>
         </summary>
         <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
           <div>
-            <label style="display:block;font-size:12px;color:var(--text-m);margin-bottom:6px">Client ID</label>
+            <label style="display:block;font-size:12px;color:var(--text-m);margin-bottom:6px" data-i18n="settings.twitch_app.client_id_label">Client ID</label>
             <div style="display:flex;gap:8px">
-              <input id="twitch-client-id" type="text" class="input" placeholder="Leer lassen = CastCore-Default verwenden"
+              <input id="twitch-client-id" type="text" class="input"
+                data-i18n-placeholder="settings.twitch_app.client_id_ph"
+                placeholder="Leer lassen = CastCore-Default verwenden"
                 style="flex:1;font-family:var(--mono);font-size:12px">
-              <button class="btn primary" onclick="saveClientId()">Speichern</button>
+              <button class="btn primary" onclick="saveClientId()" data-i18n="btn.save">Speichern</button>
             </div>
           </div>
-          <p style="font-size:11px;color:var(--text-s);line-height:1.65;margin:0">
-            Eigene App unter <strong style="color:var(--text)">dev.twitch.tv/console</strong> registrieren →
-            Redirect URL: <code style="font-family:var(--mono);color:var(--acc2)">http://localhost</code>
-          </p>
         </div>
       </details>
     </div>

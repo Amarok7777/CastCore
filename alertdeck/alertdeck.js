@@ -789,7 +789,7 @@ async function refreshLabels() {
 }
 
 async function resetLabels() {
-  if (!confirm('Alle Zähler auf null zurücksetzen?')) return;
+  if (!confirm(t('widgeturls.reset_confirm'))) return;
   try { await safeJson('/api/alertdeck/labels/reset', {method:'POST'}); refreshLabels(); } catch {}
 }
 

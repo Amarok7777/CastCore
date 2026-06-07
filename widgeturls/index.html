@@ -281,12 +281,12 @@ function buildChatUrl() {
 
 function renderLabels() {
   const groups = ['twitch','youtube','allgemein'];
-  const names  = {twitch:'Twitch', youtube:'YouTube', allgemein:'Allgemein'};
+  const names  = {twitch:'Twitch', youtube:'YouTube', allgemein: t('widgeturls.group.general')};
   let html = '';
   for (const g of groups) {
     const rows = LABELS.filter(l => l.group === g);
     html += '<div class="lg-hd">' + esc(names[g]) + '</div>';
-    html += '<table class="label-table"><thead><tr><th>Label</th><th>Aktueller Wert</th><th>URL für OBS</th></tr></thead><tbody>';
+    html += '<table class="label-table"><thead><tr><th>Label</th><th>' + t('widgeturls.table.current_value') + '</th><th>' + t('widgeturls.table.obs_url') + '</th></tr></thead><tbody>';
     rows.forEach((l, i) => {
       const url = BASE + '/api/alertdeck/labels/' + l.key + '.txt';
       const labelName = l.i18nKey ? t(l.i18nKey) : l.name;

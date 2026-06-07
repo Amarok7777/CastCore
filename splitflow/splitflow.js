@@ -85,7 +85,7 @@ function updateNavStatus() {
   const sub = document.getElementById('nav-sub-splits');
   if (sub) {
     if (profiles.length === 0) {
-      sub.textContent = 'Noch kein Profil';
+      sub.textContent = t('splitflow.no_profile');
       sub.className = 'nav-item-status warn';
     } else if (currentProfileId) {
       const p = profiles.find(x => x.id === currentProfileId);
@@ -281,7 +281,7 @@ function renderProfileSelect() {
 async function onProfileSelect() {
   const id = document.getElementById('profile-select').value;
   if (isDirty && currentProfileId) {
-    if (!confirm('Ungespeicherte Änderungen gehen verloren. Trotzdem wechseln?')) {
+    if (!confirm(t('splitflow.confirm.switch'))) {
       document.getElementById('profile-select').value = currentProfileId || '';
       return;
     }
@@ -292,7 +292,7 @@ async function onProfileSelect() {
     document.getElementById('btn-load-timer').disabled = true;
     document.getElementById('btn-delete-profile').style.display = 'none';
     const pvProfEl = document.getElementById('pv-profile');
-    if (pvProfEl) pvProfEl.textContent = 'Kein Profil geladen';
+    if (pvProfEl) pvProfEl.textContent = t('controldeck.timer.no_profile');
     sendPreviewProfile(null);
     updateActiveBadge();
     updateNavStatus();
@@ -433,7 +433,7 @@ function deleteSplitRow(btn) {
 }
 
 function clearSplits() {
-  if (!confirm('Alle Splits leeren?')) return;
+  if (!confirm(t('splitflow.confirm.clear'))) return;
   const tbody = document.getElementById('splits-tbody');
   tbody.innerHTML = '';
   tbody.appendChild(makeEmptyRow());
@@ -442,7 +442,7 @@ function clearSplits() {
 
 function newProfile() {
   if (isDirty && currentProfileId) {
-    if (!confirm('Ungespeicherte Änderungen gehen verloren. Trotzdem fortfahren?')) return;
+    if (!confirm(t('splitflow.confirm.continue'))) return;
   }
   document.getElementById('profile-select').value = '';
   document.getElementById('f-game').value     = '';

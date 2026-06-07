@@ -664,7 +664,7 @@ async function initMidi() {
 
   if (!navigator.requestMIDIAccess) {
     dbg('→ requestMIDIAccess nicht verfügbar');
-    if (statusEl) statusEl.textContent = 'WebMIDI nicht verfügbar in dieser Runtime';
+    if (statusEl) statusEl.textContent = t('scenepilot.midi.not_available');
     return;
   }
   dbg('requestMIDIAccess vorhanden, rufe auf...');
@@ -1043,7 +1043,7 @@ function onValueModeChange() {
   rangeRow.style.display = mode === 'custom-range' ? '' : 'none';
   const n = document.getElementById('map-threshold').value || '1';
   if      (mode === 'threshold') hint.textContent = `Trigger wird ausgelöst wenn CC-Wert ≥ ${n}. (Button drücken → 127, loslassen → 0)`;
-  else if (mode === 'any')       hint.textContent = 'Jedes eingehende CC-Signal löst den Trigger aus, unabhängig vom Wert.';
+  else if (mode === 'any')       hint.textContent = t('scenepilot.valuemode.hint_any');
   else if (mode === 'use-value') hint.textContent = 'Der CC-Wert (0–127) wird direkt als Parameter weitergegeben — ideal für Fader und Regler.';
   else if (mode === 'custom-range') {
     const min = document.getElementById('map-range-min').value || '0';
