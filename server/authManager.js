@@ -128,6 +128,13 @@ function loadOAuthClientConfigFile() {
   }
 }
 
+function saveOAuthClientConfig(provider, config) {
+  const key = String(provider || '').trim().toLowerCase();
+  const current = loadOAuthClientConfigFile();
+  current[key] = { ...(current[key] || {}), ...config };
+  atomicWriteJson(OAUTH_CLIENTS_PATH, current);
+}
+
 function init() {
   loadAuthConfig();
   // Auto-connect Twitch if enabled & configured
@@ -518,6 +525,7 @@ module.exports = {
   setYouTubeChannel,
   disconnectYouTube,
   getOAuthClientConfig,
+  saveOAuthClientConfig,
   setTwitchOAuthSession,
   clearTwitchOAuthSession,
   getTwitchOAuthSession,

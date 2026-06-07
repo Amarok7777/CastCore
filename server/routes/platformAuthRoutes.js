@@ -25,6 +25,20 @@ function registerPlatformAuthRoutes(app, deps) {
     TWITCH_SCOPES,
   } = deps;
 
+  // ── OAuth client config ───────────────────────────────────────────────────
+
+  app.get('/api/oauth-clients', (req, res) => {
+    const twitch = authManager.getOAuthClientConfig('twitch');
+    res.json({ twitch: { clientId: twitch.clientId } });
+  });
+
+  app.patch('/api/oauth-clients', (req, res) => {
+    const { provider, clientId } = req.body || {};
+    if (!provider || typeof clientId !== 'string') return jsonError(res, 400, 'provider und clientId erforderlich');
+    authManager.saveOAuthClientConfig(String(provider).toLowerCase(), { clientId: clientId.trim() });
+    res.json({ ok: true });
+  });
+
   // ── Platform state ────────────────────────────────────────────────────────
 
   app.get('/api/platforms', (req, res) => {
