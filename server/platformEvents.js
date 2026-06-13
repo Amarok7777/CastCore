@@ -147,6 +147,27 @@ function add(raw) {
   return { added: true, item };
 }
 
+// Like add(), but if the id already exists the timestamp is updated so the
+// entry floats back to the top of the sorted list. Used by backfill to keep
+// currently-active subscribers visible in the feed.
+function upsert(raw) {
+  const item = normalize(raw);
+  if (!item) return { added: false, updated: false, item: null };
+
+  if (seenIds.has(item.id)) {
+    const idx = history.findIndex(h => h.id === item.id);
+    if (idx >= 0) {
+      history[idx] = { ...history[idx], ts: item.ts };
+      rebuildSnapshot();
+      saveToFile();
+      return { added: false, updated: true, item: history[idx] };
+    }
+  }
+
+  const result = add(raw);
+  return { ...result, updated: false };
+}
+
 function getHistory(limit = 50) {
   const max = Math.max(1, Math.min(500, Number(limit) || 50));
   return history
@@ -180,4 +201,4 @@ function reset() {
   return getSnapshot();
 }
 
-module.exports = { add, getHistory, getSnapshot, reset, init: loadFromFile };
+module.exports = { add, upsert, getHistory, getSnapshot, reset, init: loadFromFile };

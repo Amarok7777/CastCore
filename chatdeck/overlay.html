@@ -161,9 +161,9 @@ const _wsClient = createWsClient({
 // ── Init ───────────────────────────────────────────────────────────
 async function init() {
   try {
+    _wsClient.start();
     cfg = await safeJson('/api/chatdeck/config');
     keywords = cfg.keywords || [];
-    _wsClient.start();
     await loadPlatformStatus();
     statusTimer = setInterval(loadPlatformStatus, 3000);
   } catch (e) {

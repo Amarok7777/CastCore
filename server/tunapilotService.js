@@ -627,6 +627,8 @@ function normalizePlaylist(list) {
       title: String(t.title || path.basename(String(t.path), path.extname(String(t.path))) || ''),
       artist: String(t.artist || ''),
       album: String(t.album || ''),
+      coverArt: t.coverArt || null,
+      duration: t.duration || null,
     }));
 }
 

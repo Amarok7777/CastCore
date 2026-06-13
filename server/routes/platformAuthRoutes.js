@@ -119,7 +119,9 @@ function registerPlatformAuthRoutes(app, deps) {
             text: isGift ? 'has gifted a sub.' : 'has subscribed.',
             ts: Date.now(),
           };
-          const r = platformEvents.add(evt);
+          // upsert: keeps the entry near the top of the feed as long as the sub
+          // is still active; once a sub expires the entry naturally ages out.
+          const r = platformEvents.upsert(evt);
           if (r.added) imported += 1;
         }
       } catch { /* optional endpoint */ }

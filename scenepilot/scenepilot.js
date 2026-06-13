@@ -47,37 +47,15 @@ let ws           = null;
 let _bgRuntimeActive = false;
 const isBackgroundRuntime = new URLSearchParams(window.location.search).get('runtime') === 'bg';
 
-// ─── Debug helpers ────────────────────────────────────────────────────────────
-function dbg(msg) {
-  console.warn('[ScenePilot MIDI]', msg);
-  const el = document.getElementById('dbg-last');
-  if (el) el.textContent = 'Letzte Aktion: ' + msg;
-}
-function dbgUpdate() {
-  const sel = document.getElementById('midi-input');
-  const opts = sel ? [...sel.options].map(o => o.value).join(', ') : 'kein sel';
-  const s = (e, v) => { const x = document.getElementById(e); if (x) x.textContent = v; };
-  s('dbg-bg',       'bgRuntime: ' + _bgRuntimeActive);
-  s('dbg-ws',       'isBG: ' + isBackgroundRuntime);
-  s('dbg-access',   'midiAccess: ' + (midiAccess ? 'gesetzt (inputs:' + midiAccess.inputs.size + ')' : 'null'));
-  s('dbg-devices',  'Dropdown: [' + opts + ']');
-  s('dbg-bindings', 'UI-Bindings: ' + midiBindings.length + ' | ' + midiBindings.map(b => 'Ch' + (b.channel+1) + '/#' + b.number + '→' + b.action).join(', '));
-}
-
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 async function boot() {
   buildChannelOptions();
-  dbg('boot start, isBG=' + isBackgroundRuntime);
   _wsClient.start();
   try { await loadConfig(); } catch (e) { console.error('loadConfig', e); }
-  dbg('loadConfig done');
   await pollStatus();
-  dbg('pollStatus done, _bgRuntimeActive=' + _bgRuntimeActive);
   await initMidi();
-  dbg('initMidi done');
   await initSyncedMappings();
-  dbgUpdate();
-  setInterval(() => { pollStatus(); dbgUpdate(); }, 5000);
+  setInterval(pollStatus, 5000);
 }
 
 async function loadConfig() {
@@ -124,19 +102,10 @@ const _wsClient = createWsClient({
     }
     if (isBackgroundRuntime && msg.type === 'SCENEPILOT_BINDINGS_UPDATED') {
       midiBindings = Array.isArray(msg.payload?.bindings) ? msg.payload.bindings : midiBindings;
-      _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: { msg: 'BG bindings updated: ' + midiBindings.length + ' binding(s) — ' + midiBindings.map(b => 'Ch' + (b.channel+1) + '/#' + b.number + '→' + b.action).join(', ') } });
-    }
-    if (!isBackgroundRuntime && msg.type === 'SCENEPILOT_DISPATCH_LOG') {
-      const el = document.getElementById('dbg-dispatch');
-      if (el) el.textContent = 'Dispatch: ' + msg.payload?.msg;
     }
     if (!isBackgroundRuntime) {
       if (msg.type === 'SCENEPILOT_MIDI_EVENT')   handleMidiForwarded(msg.payload);
-      if (msg.type === 'SCENEPILOT_MIDI_DEVICES') {
-        dbg('WS MIDI_DEVICES empfangen: ' + JSON.stringify(msg.payload?.devices));
-        handleMidiDevicesForwarded(msg.payload);
-        dbgUpdate();
-      }
+      if (msg.type === 'SCENEPILOT_MIDI_DEVICES') handleMidiDevicesForwarded(msg.payload);
     }
   },
 });
@@ -174,11 +143,10 @@ function handleMidiForwarded(p) {
 // unavailable in the UI context for any reason, this ensures the dropdown still
 // shows the correct device and dispatch prevention stays active.
 function handleMidiDevicesForwarded(p) {
-  dbg('handleMidiDevicesForwarded: devices=' + JSON.stringify(p?.devices) + ' midiAccess.inputs=' + (midiAccess?.inputs.size ?? 'null'));
-  if (!p?.devices?.length) { dbg('→ abort: keine Geräte'); return; }
+  if (!p?.devices?.length) return;
   _bgRuntimeActive = true;
 
-  if (midiAccess?.inputs.size) { dbg('→ abort: midiAccess hat bereits ' + midiAccess.inputs.size + ' inputs'); return; }
+  if (midiAccess?.inputs.size) return;
 
   const sel = document.getElementById('midi-input');
   if (!sel) return;
@@ -358,22 +326,16 @@ function buildChannelOptions() {
 
 async function initMidi() {
   const statusEl = document.getElementById('midi-dev-status');
-  dbg('initMidi: _bgRuntimeActive=' + _bgRuntimeActive + ' isBG=' + isBackgroundRuntime);
-
   if (!navigator.requestMIDIAccess) {
-    dbg('→ requestMIDIAccess nicht verfügbar');
     if (statusEl) statusEl.textContent = t('scenepilot.midi.not_available');
     return;
   }
-  dbg('requestMIDIAccess vorhanden, rufe auf...');
   let access;
   try { access = await navigator.requestMIDIAccess({ sysex: false }); }
   catch (e) {
-    dbg('→ requestMIDIAccess FEHLER: ' + e.message);
     if (statusEl) statusEl.textContent = 'MIDI-Zugriff verweigert: ' + e.message;
     return;
   }
-  dbg('requestMIDIAccess OK, inputs.size=' + access.inputs.size);
   midiAccess = access;
 
   midiAccess.onstatechange = async () => {
@@ -400,23 +362,16 @@ async function refreshMidiInputsUI() {
   const currentValue = sel.value;
 
   if (!inputs.length) {
-    dbg('refreshMidiInputsUI: inputs LEER, _bgRuntimeActive=' + _bgRuntimeActive + ' isBG=' + isBackgroundRuntime);
-    if (!isBackgroundRuntime && _bgRuntimeActive) {
-      dbg('→ BG aktiv, kein Überschreiben des Dropdowns');
-      return;
-    }
+    if (!isBackgroundRuntime && _bgRuntimeActive) return;
     sel.innerHTML = `<option value="">${t('scenepilot.no_midi_device')}</option>`;
     statusEl.textContent = t('scenepilot.no_midi');
-    dbg('→ Dropdown auf "kein MIDI" gesetzt');
     await initMidiOutput();
     return;
   }
-  dbg('refreshMidiInputsUI: ' + inputs.length + ' Gerät(e) gefunden: ' + inputs.map(i=>i.name||i.id).join(', '));
 
   // Capture names as plain strings; build options via DOM API (no esc() needed,
   // textContent/value assignment handles all encoding automatically).
   const inputNames = inputs.map(i => i.name || i.id);
-  dbg('inputNames=' + JSON.stringify(inputNames));
 
   sel.replaceChildren(...inputNames.map(n => {
     const opt = document.createElement('option');
@@ -424,8 +379,6 @@ async function refreshMidiInputsUI() {
     opt.textContent = n;
     return opt;
   }));
-  dbg('nach replaceChildren: options=' + sel.options.length + ' val0="' + (sel.options[0]?.value ?? '?') + '"');
-
   // Select the right option by index, then activate using the captured name.
   const saved = config?.midi?.inputName;
   let activeIdx = 0;
@@ -439,7 +392,6 @@ async function refreshMidiInputsUI() {
   // Use the captured name directly — do not rely on sel.value which can be ""
   // if esc() produced an empty attribute value for any reason.
   const nameToActivate = inputNames[activeIdx] || '';
-  dbg('vor activateInput: idx=' + activeIdx + ' name="' + nameToActivate + '" sel.value="' + sel.value + '"');
   activateInput(nameToActivate);
   sel.onchange = async () => {
     const n = inputNames[sel.selectedIndex] || sel.value || '';
@@ -465,12 +417,6 @@ function activateInput(name) {
   if (!midiAccess) return;
   for (const i of midiAccess.inputs.values()) i.onmidimessage = null;
   const found = [...midiAccess.inputs.values()].find(i => (i.name || i.id) === name);
-  dbg('activateInput name="' + name + '" found=' + (found ? found.name : 'null') + ' inputs.size=' + midiAccess.inputs.size);
-  if (isBackgroundRuntime) {
-    _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: {
-      msg: 'activateInput [BG]: name="' + name + '" found=' + (found ? found.name : 'NULL') + ' allInputs=[' + [...midiAccess.inputs.values()].map(i=>i.name||i.id).join(',') + ']'
-    }});
-  }
   if (!found) return;
   found.onmidimessage = onMidiMessage;
   document.getElementById('midi-dev-status').textContent = 'Aktiv: ' + name;
@@ -501,12 +447,6 @@ async function onMidiMessage(ev) {
   const [status, data1, data2] = ev.data;
   const nibble   = status & 0xf0;
   const channel  = status & 0x0f;
-
-  if (isBackgroundRuntime) {
-    _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: {
-      msg: 'onMidiMessage [BG] FIRED: st=0x' + status.toString(16) + ' ch=' + channel + ' d1=' + data1 + ' d2=' + data2
-    }});
-  }
 
   // Accept CC (0xB0), Note On (0x90), Note Off (0x80)
   if (nibble !== 0xb0 && nibble !== 0x90 && nibble !== 0x80) return;
@@ -553,23 +493,12 @@ async function onMidiMessage(ev) {
     (b.type || 'cc') === msgType
   );
 
-  if (isBackgroundRuntime) {
-    const searchInfo = 'BG onMidiMessage: ch=' + channel + ' #' + data1 + ' val=' + data2 + ' type=' + msgType
-      + ' | bindings=' + midiBindings.length
-      + ' | found=' + (binding ? binding.action + '(cat:' + binding.category + ')' : 'null');
-    _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: { msg: searchInfo } });
-  }
-
   if (!binding || binding.category === 'none') return;
   // Note Off: always trigger (ignore threshold); CC/Note On: respect threshold
   if (msgType !== 'noteoff') {
     const thr = binding.threshold ?? 1;
-    if (binding.valueMode === 'threshold' && data2 < thr) {
-      if (isBackgroundRuntime) _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: { msg: 'SKIP threshold: val=' + data2 + ' < thr=' + thr } });
-      return;
-    }
+    if (binding.valueMode === 'threshold' && data2 < thr) return;
   }
-  if (isBackgroundRuntime) _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: { msg: 'DISPATCH → ' + binding.action + ' scene=' + (binding.sceneName||'') } });
   await dispatchBinding(binding, data2);
 }
 
@@ -636,20 +565,13 @@ async function dispatchBinding(b, ccValue) {
     }
   } catch (e) {
     console.error('dispatch error', e);
-    if (isBackgroundRuntime) _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: { msg: 'DISPATCH ERROR: ' + e.message } });
   }
 }
 
 async function postAction(action) {
-  try {
-    await safeJson('/api/scenepilot/action', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action),
-    });
-    if (isBackgroundRuntime) _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: { msg: 'OBS OK: ' + JSON.stringify(action) } });
-  } catch (e) {
-    if (isBackgroundRuntime) _wsClient.send({ type: 'SCENEPILOT_DISPATCH_LOG', payload: { msg: 'OBS ERROR: ' + e.message + ' | action=' + JSON.stringify(action) } });
-    throw e;
-  }
+  await safeJson('/api/scenepilot/action', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action),
+  });
 }
 
 // ─── Mapping Form ─────────────────────────────────────────────────────────────

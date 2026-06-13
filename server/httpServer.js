@@ -216,19 +216,26 @@ function createOverlayServer({ dashboard = false, toolRuntime = null, electronPi
         if (!scenepilotService.connected || !scenepilotService.obs) {
           return res.status(503).json({ error: 'OBS nicht verbunden' });
         }
-        const [statsData, streamData, recordData, vcamData] = await Promise.all([
+        const [statsData, streamData, recordData, vcamData, outputsData] = await Promise.all([
           scenepilotService.obs.call('GetStats').catch(() => ({})),
           scenepilotService.obs.call('GetStreamStatus').catch(() => ({})),
           scenepilotService.obs.call('GetRecordStatus').catch(() => ({})),
           scenepilotService.obs.call('GetVirtualCamStatus').catch(() => ({})),
+          scenepilotService.obs.call('GetOutputList').catch(() => ({ outputs: [] })),
         ]);
+        // Multiple RTMP plugin creates custom outputs not tracked by GetStreamStatus.
+        // Treat any active non-built-in output as "streaming" so the UI button stays correct.
+        const BUILTIN_OUTPUTS = new Set(['simple_stream', 'adv_stream', 'simple_record', 'adv_file_output', 'virtualcam']);
+        const multiRtmpActive = (outputsData.outputs || []).some(o =>
+          o.outputActive && !BUILTIN_OUTPUTS.has(o.outputName)
+        );
         res.json({
           activeFps:           statsData.activeFps           || 0,
           cpuUsage:            statsData.cpuUsage            || 0,
           memoryUsage:         statsData.memoryUsage         || 0,
           outputSkippedFrames: statsData.outputSkippedFrames || 0,
           outputTotalFrames:   statsData.outputTotalFrames   || 0,
-          outputActive:   streamData.outputActive  || false,
+          outputActive:   streamData.outputActive || multiRtmpActive || false,
           outputTimecode: streamData.outputTimecode || null,
           outputDuration: streamData.outputDuration || 0,
           recordActive:   recordData.outputActive  || false,
